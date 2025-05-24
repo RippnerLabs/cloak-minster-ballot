@@ -4,7 +4,7 @@ use crate::error::ErrorCode;
 
 #[derive(Accounts)]
 #[instruction(name: String)]
-pub struct UpdateRoot<'info> {
+pub struct CloseRegistration<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
 
@@ -18,20 +18,13 @@ pub struct UpdateRoot<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn update_root_handler(ctx: Context<UpdateRoot>, name: String, merkle_root: [u8;32], ipfs_cid_str: String) -> Result<()> {
+pub fn close_registration_handler(ctx: Context<CloseRegistration>, name: String) -> Result<()> {
     let mut election= &mut ctx.accounts.election;
 
     require!(election.admin == *ctx.accounts.signer.key, ErrorCode::Unauthorised);
 
-    election.merkle_root = merkle_root;
-    election.nullifiers_ipfs_cid = ipfs_cid_str;
-
-    emit!(RootUpdated{root: merkle_root});
+    election.is_registration_open = false;
+    election.is_voting_open = true;
 
     Ok(())
-}
-
-#[event]
-pub struct RootUpdated {
-    pub root: [u8; 32],
 }

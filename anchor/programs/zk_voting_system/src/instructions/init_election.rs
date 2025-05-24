@@ -19,12 +19,12 @@ pub struct InitElection<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn init_election_handler(ctx: Context<InitElection>, name: String, start_time:i64, end_time:i64, options: Vec<String>) -> Result<()> {
+pub fn init_election_handler(ctx: Context<InitElection>, name: String, is_registration_open: bool, is_voting_open: bool , options: Vec<String>) -> Result<()> {
     let mut election = &mut ctx.accounts.election;
     election.admin = *ctx.accounts.signer.key;
      election.name = name;
-    election.start_time = start_time;
-    election.end_time = end_time;
+    election.is_registration_open = is_registration_open;
+    election.is_voting_open = is_voting_open;
     election.nullifiers_ipfs_cid = String::new();
     election.options = options;
     election.tallies = vec![0; election.options.len()];

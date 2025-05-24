@@ -1,5 +1,5 @@
 {
-  "address": "HfCyejxgjizCmDVDei3Yg7BVvT5BeChCNTVzbTThWWFP",
+  "address": "2VfZZTtpr8Av9W2XmnJSSc3CLRVp3RLfUcds2gi2exuy",
   "metadata": {
     "name": "zk_voting_system",
     "version": "0.1.0",
@@ -7,6 +7,61 @@
     "description": "Created with Anchor"
   },
   "instructions": [
+    {
+      "name": "close_registration",
+      "discriminator": [
+        44,
+        118,
+        178,
+        58,
+        21,
+        125,
+        102,
+        138
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "election",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  108,
+                  101,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": "string"
+        }
+      ]
+    },
     {
       "name": "init_election",
       "discriminator": [
@@ -61,12 +116,12 @@
           "type": "string"
         },
         {
-          "name": "start_time",
-          "type": "i64"
+          "name": "is_registration_open",
+          "type": "bool"
         },
         {
-          "name": "end_time",
-          "type": "i64"
+          "name": "is_voting_open",
+          "type": "bool"
         },
         {
           "name": "options",
@@ -343,12 +398,12 @@
             "type": "string"
           },
           {
-            "name": "start_time",
-            "type": "i64"
+            "name": "is_registration_open",
+            "type": "bool"
           },
           {
-            "name": "end_time",
-            "type": "i64"
+            "name": "is_voting_open",
+            "type": "bool"
           },
           {
             "name": "nullifiers_ipfs_cid",

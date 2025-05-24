@@ -6,8 +6,8 @@ pub struct Election {
     pub admin: Pubkey,
     #[max_len(32)]
     pub name: String,
-    pub start_time: i64,
-    pub end_time: i64,
+    pub is_registration_open: bool,
+    pub is_voting_open: bool,
     #[max_len(59)]
     pub nullifiers_ipfs_cid: String, // ascii multibase cid 
     pub merkle_root: [u8; 32],

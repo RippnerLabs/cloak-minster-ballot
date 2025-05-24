@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/zk_voting_system.json`.
  */
 export type ZkVotingSystem = {
-  "address": "HfCyejxgjizCmDVDei3Yg7BVvT5BeChCNTVzbTThWWFP",
+  "address": "2VfZZTtpr8Av9W2XmnJSSc3CLRVp3RLfUcds2gi2exuy",
   "metadata": {
     "name": "zkVotingSystem",
     "version": "0.1.0",
@@ -13,6 +13,61 @@ export type ZkVotingSystem = {
     "description": "Created with Anchor"
   },
   "instructions": [
+    {
+      "name": "closeRegistration",
+      "discriminator": [
+        44,
+        118,
+        178,
+        58,
+        21,
+        125,
+        102,
+        138
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "election",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  108,
+                  101,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": "string"
+        }
+      ]
+    },
     {
       "name": "initElection",
       "discriminator": [
@@ -67,12 +122,12 @@ export type ZkVotingSystem = {
           "type": "string"
         },
         {
-          "name": "startTime",
-          "type": "i64"
+          "name": "isRegistrationOpen",
+          "type": "bool"
         },
         {
-          "name": "endTime",
-          "type": "i64"
+          "name": "isVotingOpen",
+          "type": "bool"
         },
         {
           "name": "options",
@@ -349,12 +404,12 @@ export type ZkVotingSystem = {
             "type": "string"
           },
           {
-            "name": "startTime",
-            "type": "i64"
+            "name": "isRegistrationOpen",
+            "type": "bool"
           },
           {
-            "name": "endTime",
-            "type": "i64"
+            "name": "isVotingOpen",
+            "type": "bool"
           },
           {
             "name": "nullifiersIpfsCid",

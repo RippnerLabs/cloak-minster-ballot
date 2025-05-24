@@ -4,3 +4,5 @@ pub use register_voter::*;
 pub mod register_voter;
 pub use update_root::*;
 pub mod update_root;
+pub use close_registration::*;
+pub mod close_registration;

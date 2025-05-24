@@ -6,14 +6,14 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-zk_voting_system = "HfCyejxgjizCmDVDei3Yg7BVvT5BeChCNTVzbTThWWFP"
+zk_voting_system = "2VfZZTtpr8Av9W2XmnJSSc3CLRVp3RLfUcds2gi2exuy"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
 cluster = "localnet"
-wallet = "~/.config/solana/id.json"
+wallet = "./keys/signer.json"
 
 [scripts]
-test = "../node_modules/.bin/jest --preset ts-jest --detectOpenHandles"
+test = "../node_modules/.bin/jest --preset ts-jest"
