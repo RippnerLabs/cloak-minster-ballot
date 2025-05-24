@@ -10,4 +10,7 @@ pub enum ErrorCode {
 
     #[msg("Unauthorised")]
     Unauthorised,
+
+    #[msg("Voting for non-existent option")]
+    NonExistentOption,
 }

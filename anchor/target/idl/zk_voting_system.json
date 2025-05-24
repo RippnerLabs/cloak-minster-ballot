@@ -321,6 +321,142 @@
           "type": "string"
         }
       ]
+    },
+    {
+      "name": "vote",
+      "discriminator": [
+        227,
+        110,
+        155,
+        23,
+        136,
+        126,
+        172,
+        25
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "election",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  108,
+                  101,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "event_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "proof_a",
+          "type": {
+            "array": [
+              "u8",
+              64
+            ]
+          }
+        },
+        {
+          "name": "proof_b",
+          "type": {
+            "array": [
+              "u8",
+              128
+            ]
+          }
+        },
+        {
+          "name": "proof_c",
+          "type": {
+            "array": [
+              "u8",
+              64
+            ]
+          }
+        },
+        {
+          "name": "nullifier",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "merkle_root",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "option",
+          "type": "string"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -364,6 +500,19 @@
         98,
         231
       ]
+    },
+    {
+      "name": "VoteAdded",
+      "discriminator": [
+        200,
+        194,
+        177,
+        26,
+        73,
+        249,
+        35,
+        213
+      ]
     }
   ],
   "errors": [
@@ -381,6 +530,11 @@
       "code": 6002,
       "name": "Unauthorised",
       "msg": "Unauthorised"
+    },
+    {
+      "code": 6003,
+      "name": "NonExistentOption",
+      "msg": "Voting for non-existent option"
     }
   ],
   "types": [
@@ -406,10 +560,6 @@
             "type": "bool"
           },
           {
-            "name": "nullifiers_ipfs_cid",
-            "type": "string"
-          },
-          {
             "name": "merkle_root",
             "type": {
               "array": [
@@ -417,6 +567,23 @@
                 32
               ]
             }
+          },
+          {
+            "name": "nullifiers_ipfs_cid",
+            "type": "string"
+          },
+          {
+            "name": "spent_tree",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "spent_nullifiers_ipfs_cid",
+            "type": "string"
           },
           {
             "name": "options",
@@ -463,6 +630,18 @@
                 32
               ]
             }
+          }
+        ]
+      }
+    },
+    {
+      "name": "VoteAdded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "option",
+            "type": "string"
           }
         ]
       }

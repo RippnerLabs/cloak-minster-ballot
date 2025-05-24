@@ -1183,6 +1183,11 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
+"@juanelas/base64@^1.1.2":
+  version "1.1.5"
+  resolved "https://registry.yarnpkg.com/@juanelas/base64/-/base64-1.1.5.tgz#d43b3c78e32e609d9b17a15e4f1b6342c9ca1238"
+  integrity sha512-mjAF27LzwfYobdwqnxZgeucbKT5wRRNvILg3h5OvCWK+3F7mw/A1tnjHnNiTYtLmTvT/bM1jA5AX7eQawDGs1w==
+
 "@multiformats/base-x@^4.0.1":
   version "4.0.1"
   resolved "https://registry.yarnpkg.com/@multiformats/base-x/-/base-x-4.0.1.tgz#95ff0fa58711789d53aefb2590a8b7a4e715d121"
@@ -2464,6 +2469,16 @@
   dependencies:
     "@wallet-standard/base" "^1.1.0"
 
+"@zk-kit/smt@^1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@zk-kit/smt/-/smt-1.0.2.tgz#7b3899b3ead7ebbafaad87ab81ca2ceaea0b5733"
+  integrity sha512-RvtF6r3imbX70elUx0Pd08VnYVn+D0an6JNdmv1qgl7WWfsq3mrwWNUHLOtWBCyvB2BaJsc3btWZzUCNVm2POg==
+
+"@zk-kit/sparse-merkle-tree@^0.2.0":
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/@zk-kit/sparse-merkle-tree/-/sparse-merkle-tree-0.2.0.tgz#1cd6aa3cff48da87cdf044bdb53c7f28481267fa"
+  integrity sha512-nG1zWnNz7wGAyLly73/Aqr5yM1cHNR52E2PR3nnANOXSVLZE3jdpVK0pogcAgss9auCVw0Wv8B49vhWxCIvZBg==
+
 abort-controller@^3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/abort-controller/-/abort-controller-3.0.0.tgz#eaf54d53b62bae4138e809ca225c8439a6efb392"
@@ -2815,6 +2830,13 @@ bigint-buffer@^1.1.5:
   integrity sha512-trfYco6AoZ+rKhKnxA0hgX0HAbVP/s808/EuDSe2JDzUnCp/xAsli35Orvk67UrTEcwuxZqYZDmfA2RXJgxVvA==
   dependencies:
     bindings "^1.3.0"
+
+bigint-conversion@^2.4.3:
+  version "2.4.3"
+  resolved "https://registry.yarnpkg.com/bigint-conversion/-/bigint-conversion-2.4.3.tgz#cca2ff59033960be8ff517b8e931db82b6bb24fa"
+  integrity sha512-eM76IXlhXQD6HAoE6A7QLQ3jdC04EJdjH3zrlU1Jtt4/jj+O/pMGjGR5FY8/55FOIBsK25kly0RoG4GA4iKdvg==
+  dependencies:
+    "@juanelas/base64" "^1.1.2"
 
 bignumber.js@^9.0.0, bignumber.js@^9.0.1:
   version "9.3.0"
@@ -6283,6 +6305,11 @@ pngjs@^5.0.0:
   version "5.0.0"
   resolved "https://registry.npmjs.org/pngjs/-/pngjs-5.0.0.tgz"
   integrity sha512-40QW5YalBNfQo5yRYmiw7Yz6TKKVr3h6970B2YE+3fQpsWcrbj1PzJgxeJ19DRQjhMbKPIuMY8rFaXc8moolVw==
+
+poseidon-lite@^0.3.0:
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/poseidon-lite/-/poseidon-lite-0.3.0.tgz#93c42f6f9b870f154f2722dfd686b909c4285765"
+  integrity sha512-ilJj4MIve4uBEG7SrtPqUUNkvpJ/pLVbndxa0WvebcQqeIhe+h72JR4g0EvwchUzm9sOQDlOjiDNmRAgxNZl4A==
 
 possible-typed-array-names@^1.0.0:
   version "1.1.0"

@@ -327,6 +327,142 @@ export type ZkVotingSystem = {
           "type": "string"
         }
       ]
+    },
+    {
+      "name": "vote",
+      "discriminator": [
+        227,
+        110,
+        155,
+        23,
+        136,
+        126,
+        172,
+        25
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "election",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  108,
+                  101,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "eventAuthority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  95,
+                  95,
+                  101,
+                  118,
+                  101,
+                  110,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program"
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "proofA",
+          "type": {
+            "array": [
+              "u8",
+              64
+            ]
+          }
+        },
+        {
+          "name": "proofB",
+          "type": {
+            "array": [
+              "u8",
+              128
+            ]
+          }
+        },
+        {
+          "name": "proofC",
+          "type": {
+            "array": [
+              "u8",
+              64
+            ]
+          }
+        },
+        {
+          "name": "nullifier",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "merkleRoot",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "option",
+          "type": "string"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -370,6 +506,19 @@ export type ZkVotingSystem = {
         98,
         231
       ]
+    },
+    {
+      "name": "voteAdded",
+      "discriminator": [
+        200,
+        194,
+        177,
+        26,
+        73,
+        249,
+        35,
+        213
+      ]
     }
   ],
   "errors": [
@@ -387,6 +536,11 @@ export type ZkVotingSystem = {
       "code": 6002,
       "name": "unauthorised",
       "msg": "unauthorised"
+    },
+    {
+      "code": 6003,
+      "name": "nonExistentOption",
+      "msg": "Voting for non-existent option"
     }
   ],
   "types": [
@@ -412,10 +566,6 @@ export type ZkVotingSystem = {
             "type": "bool"
           },
           {
-            "name": "nullifiersIpfsCid",
-            "type": "string"
-          },
-          {
             "name": "merkleRoot",
             "type": {
               "array": [
@@ -423,6 +573,23 @@ export type ZkVotingSystem = {
                 32
               ]
             }
+          },
+          {
+            "name": "nullifiersIpfsCid",
+            "type": "string"
+          },
+          {
+            "name": "spentTree",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "spentNullifiersIpfsCid",
+            "type": "string"
           },
           {
             "name": "options",
@@ -469,6 +636,18 @@ export type ZkVotingSystem = {
                 32
               ]
             }
+          }
+        ]
+      }
+    },
+    {
+      "name": "voteAdded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "option",
+            "type": "string"
           }
         ]
       }

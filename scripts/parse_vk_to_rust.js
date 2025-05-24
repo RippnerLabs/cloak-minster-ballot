@@ -77,7 +77,7 @@ async function main() {
    }
 
 
-   let resFile = await fs.openSync(outputPath + "verifying_key.rs","w")
+   let resFile = await fs.openSync(outputPath + "vote_verifying_key.rs","w")
    let s = `use groth16_solana::groth16::Groth16Verifyingkey;\n\npub const VERIFYINGKEY: Groth16Verifyingkey =  Groth16Verifyingkey {\n\tnr_pubinputs: ${mydata.IC.length},\n\n`
    s += "\tvk_alpha_g1: [\n"
    for (var j = 0; j < mydata.vk_alpha_1.length -1 ; j++) {
