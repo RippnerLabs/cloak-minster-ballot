@@ -1,4 +1,4 @@
-import {ChildNodes, SMT} from "@zk-kit/smt";
+import { ChildNodes, SMT } from "@zk-kit/smt";
 import { BN, Program, utils } from '@coral-xyz/anchor';
 import * as anchor from '@coral-xyz/anchor';
 import { PublicKey, Keypair, Connection, Transaction } from '@solana/web3.js';
@@ -15,7 +15,7 @@ import { MerkleTree } from "merkletreejs";
 import { poseidon, buildPoseidon } from "circomlibjs";
 import { CID, create } from 'ipfs-http-client';
 import { poseidon2, poseidon3 } from "poseidon-lite"
-import { registerVoter } from "./instruction_calls";
+import { downloadVoucher, registerVoter } from "./instruction_calls";
 
 function alphaToInt(str: string): bigint {
   let res = 0n;
@@ -43,7 +43,8 @@ describe('zk-voting-system', () => {
   let voucherGlobal: any;
   const options = ["option1", "option2", "opt3"];
   let users: Keypair[] = [];
-  
+  let vouchers = [];
+
   beforeAll(async () => {
     connection = new Connection("http://127.0.0.1:8899", "confirmed");
 
@@ -58,10 +59,10 @@ describe('zk-voting-system', () => {
     tree = new MerkleTree(leaves, poseidon, { hashLeaves: false, sort: true });
 
     election_name = Buffer.from("new election");
-    ipfs = create({ url:  ipfsEndpoint})
+    ipfs = create({ url: ipfsEndpoint })
 
     users = [];
-    for (let i=0;i<3;i++){
+    for (let i = 0; i < 3; i++) {
       users.push(Keypair.generate())
     }
     // Airdrop SOL to users for transaction fees
@@ -101,84 +102,24 @@ describe('zk-voting-system', () => {
   })
 
   it("Register voter", async () => {
-    for(const user of users) {
+    for (const user of users) {
       const _ = await registerVoter(user.secretKey, election_name_str, program, user, provider, connection, ipfs);
     }
     expect(1).toEqual(1);
   }, 30000)
 
   it("Download vouchers", async () => {
-    const getWitness = (tree: MerkleTree, leaf: Buffer, index: number) => {
-      const proof = tree.getProof(leaf, index);
-      let sibling_hashes = proof.map(p => '0x' + p.data.toString('hex'));
-      let path_indices = proof.map(p => (p.position == 'left') ? 0 : 1);
-      while(sibling_hashes.length < TREE_DEPTH) {
-        sibling_hashes.push("0");
-        path_indices.push(0);
-      }
-      return {
-        sibling_hashes, path_indices
-      }
+    for (const user of users) {
+      const v = await downloadVoucher(user.secretKey, election_name_str, program, ipfs);
+      vouchers.push(v);
     }
 
-    // async function downloadVoucher(secret: Uint8Array) {
-      const [electionAccountAddr] = PublicKey.findProgramAddressSync(
-        [Buffer.from("election"), election_name],
-        program.programId
-      );
-      const electionAccount = await program.account.election.fetch(electionAccountAddr);
-      // const secretKeyBigInt = BigInt('0x' + Buffer.from(secret).toString('hex'));
-      const secretKeyBigInt = BigInt('0x' + Buffer.from(wallet.payer.secretKey).toString('hex'));
-      console.log("[downloadVoucher] secretKeyBigInt", secretKeyBigInt)
-      const response = await ipfs.get(new CID(electionAccount.nullifiersIpfsCid).toV0().toString());
-      let dataStr = '';
-      for await (const chunk of response) {
-        if (chunk.content) {
-          for await (const data of chunk.content) {
-            dataStr += new TextDecoder().decode(data);
-          }
-        }
-      }
-      console.log("dataStr", dataStr);
-      const data = JSON.parse(dataStr);
-      
-      const { depth, leaves } = data;
-      console.log("leaves", leaves);
-      const electionIdBigInt = alphaToInt(election_name_str);
-      const { proof, publicSignals } = await snarkjs.groth16.fullProve({
-        identity_secret: secretKeyBigInt,
-        election_id: electionIdBigInt,
-      },
-        "../circom/identity_nullifier_js/identity_nullifier.wasm",
-        "../circom/identity_nullifier_js/1_0000.zkey",
-      )
-      console.log("Proof:", JSON.stringify(proof, null, 2));
-      console.log("public signals:", publicSignals);
-      const identity_nullifier = "0x" + to32ByteBuffer(BigInt(publicSignals[0])).toString('hex');
-      
-      const index = leaves.indexOf(identity_nullifier);
-      if (index === -1) throw 'You are not registered';
-
-      const tree = new MerkleTree(leaves, poseidon, {hashLeaves: false, sort: true});
-      const { sibling_hashes, path_indices} = getWitness(tree, identity_nullifier, index);
-
-      const voucher = {
-        election: alphaToInt(election_name_str),
-        depth: 20,
-        leaf_index: index,
-        nullifier: leaves[index].toString('hex'),
-        merkle_root: '0x' + tree.getRoot().toString('hex'),
-        sibling_hashes,
-        path_indices
-      }
-      console.log("voucher", voucher);
-  //     return voucher
-  // }
-  //   userSecrets.map(async secret => {
-  //     const v = await downloadVoucher(secret);
-  //     console.log(JSON.stringify(v));
-  //   })
-  voucherGlobal = voucher;
+    //   userSecrets.map(async secret => {
+    //     const v = await downloadVoucher(secret);
+    //     console.log(JSON.stringify(v));
+    //   })
+    voucherGlobal = vouchers[0];
+    expect(vouchers.length).toEqual(users.length);
     expect(1).toEqual(1);
     // Convert secret key to BigInt (assuming it's a Uint8Array)
     // const secretKeyBigInt = BigInt('0x' + Buffer.from(signer.secretKey).toString('hex'));
@@ -203,7 +144,7 @@ describe('zk-voting-system', () => {
   })
 
   it("Perform Vote", async () => {
-  
+
     const electionBigInt = alphaToInt(election_name_str);
     const secret = wallet.payer.secretKey;
     const secretHexStr = "0x" + Buffer.from(secret).toString('hex');
@@ -224,7 +165,7 @@ describe('zk-voting-system', () => {
       const response = await ipfs.get(new CID(currentElection.spentNullifiersIpfsCid).toV0().toString());
       let dataStr = "";
       for await (const chunk of response) {
-        if(chunk.content) {
+        if (chunk.content) {
           for await (const data of chunk.content) {
             dataStr += new TextDecoder().decode(data);
           }
@@ -234,14 +175,14 @@ describe('zk-voting-system', () => {
       const { depth, spentLeaves } = data;
       spent_leaves = spentLeaves;
     }
-    
+
     const hexToBig = (hex: string) => {
       BigInt(hex.startsWith("0x") ? hex : `0x${hex}`);
     }
     spent_leaves = spent_leaves.map(hexToBig);
     const DEPTH = 20;
     function rebuildSpentTree(spent) {
-      const hash  = (childNodes: ChildNodes) => (childNodes.length === 2 ? poseidon2(childNodes) : poseidon3(childNodes))
+      const hash = (childNodes: ChildNodes) => (childNodes.length === 2 ? poseidon2(childNodes) : poseidon3(childNodes))
       const tree = new SMT(hash, true);
       for (const n of spent) tree.add(n, 1n);
       return tree;
@@ -260,42 +201,42 @@ describe('zk-voting-system', () => {
       const nullifier = BigInt(nullifierHex);
       let { siblings } = tree.createProof(nullifier);
       let spent_root;
-      if(siblings.length !== 0) {
+      if (siblings.length !== 0) {
         spent_root = "0x" + tree.root.toString(16).padStart(64, "0")
         while (siblings.length < DEPTH) {
           siblings.push("0")
         }
-        
+
       } else {
-        const defaults:bigint[] = [0n];
-        for (let i=1; i<=DEPTH; i++){
-          defaults[i] = H(defaults[i-1], defaults[i-1]);
+        const defaults: bigint[] = [0n];
+        for (let i = 1; i <= DEPTH; i++) {
+          defaults[i] = H(defaults[i - 1], defaults[i - 1]);
         }
-        spent_root=defaults[DEPTH];
-        siblings=defaults.slice(0, DEPTH).map(toDec);
+        spent_root = defaults[DEPTH];
+        siblings = defaults.slice(0, DEPTH).map(toDec);
       }
-        
+
       const witness = {
         spent_siblings: siblings.map(n =>
           "0x" + n.toString(16).padStart(64, "0")
         ),
-        spent_path:   getPathBits(nullifier),
-        spent_root:   spent_root,
+        spent_path: getPathBits(nullifier),
+        spent_root: spent_root,
       };
       tree.add(nullifier, 1n);
       witness["new_spent_root"] =
-          "0x" + tree.root.toString(16).padStart(64, "0");
-    
+        "0x" + tree.root.toString(16).padStart(64, "0");
+
       return witness;
     }
     const spentTree = rebuildSpentTree(spent_leaves);
     const nullifier = '0x0cec14f940e42873d68c5af6586cf011775a664610189a006538c9b5fdcdb46f';
     const spentWitness = makeSpentWitness(spentTree, nullifier);
     console.log({
-      spent_root:       BigInt(spentWitness.spent_root),          // public
-      spent_siblings:   spentWitness.spent_siblings.map(s => BigInt(s)),      // private
-      spent_path:       spentWitness.spent_path.map(s => BigInt(s)),          // private
-      new_spent_root:   BigInt(spentWitness.new_spent_root),      // public
+      spent_root: BigInt(spentWitness.spent_root),          // public
+      spent_siblings: spentWitness.spent_siblings.map(s => BigInt(s)),      // private
+      spent_path: spentWitness.spent_path.map(s => BigInt(s)),          // private
+      new_spent_root: BigInt(spentWitness.new_spent_root),      // public
     });
 
     // voucherGlobal
@@ -310,7 +251,7 @@ describe('zk-voting-system', () => {
     // }
     const circuitInputs = {
       identity_nullifier: secretBigInt,
-      membership_merke_tree_siblings: voucherGlobal.sibling_hashes.map((h:string) => BigInt(h)),
+      membership_merke_tree_siblings: voucherGlobal.sibling_hashes.map((h: string) => BigInt(h)),
       membership_merke_tree_path_indices: voucherGlobal.path_indices,
       spent_root: spentWitness.spent_root,
       spent_siblings: [
@@ -339,14 +280,14 @@ describe('zk-voting-system', () => {
     }
     const circuitInputs1 = {
       identity_nullifier: secretBigInt.toString(),
-      membership_merke_tree_siblings: voucherGlobal.sibling_hashes.map((h:string) => BigInt(h).toString()),
-      membership_merke_tree_path_indices: voucherGlobal.path_indices.map((h:string) => BigInt(h).toString()),
+      membership_merke_tree_siblings: voucherGlobal.sibling_hashes.map((h: string) => BigInt(h).toString()),
+      membership_merke_tree_path_indices: voucherGlobal.path_indices.map((h: string) => BigInt(h).toString()),
       spent_root: spentWitness.spent_root.toString(),
       spent_siblings: spentWitness.spent_siblings.map(s => BigInt(s).toString()),
       spent_path: spentWitness.spent_path.map(s => BigInt(s).toString())
     }
     console.log("circuitInputs", JSON.stringify(circuitInputs1, null, 2));
-    const {proof, publicSignals} = await snarkjs.groth16.fullProve(circuitInputs,
+    const { proof, publicSignals } = await snarkjs.groth16.fullProve(circuitInputs,
       "../circom/vote_js/vote.wasm",
       "../circom/vote_js/1_0000.zkey"
     );
@@ -366,11 +307,11 @@ describe('zk-voting-system', () => {
     const proofC = g1Uncompressed(curve, proofProc.pi_c);
     console.log("proofC", proofC)
     const ix = await program.methods.vote(election_name, proofA, proofB, proofC, membership_merkle_root, new_spent_root, Buffer.from(options[0]))
-    .accounts({
-      signer: signer.publicKey,
-    })
-    .signers([signer])
-    .instruction();
+      .accounts({
+        signer: signer.publicKey,
+      })
+      .signers([signer])
+      .instruction();
 
     const latestBlockContext = await provider.connection.getLatestBlockhash();
     const tx = new Transaction({
@@ -380,7 +321,7 @@ describe('zk-voting-system', () => {
     tx.add(ix)
     tx.sign(signer);
 
-    const sign = await anchor.web3.sendAndConfirmTransaction(connection, tx, [wallet.payer], {skipPreflight: true});
+    const sign = await anchor.web3.sendAndConfirmTransaction(connection, tx, [wallet.payer], { skipPreflight: true });
 
     const txData = await provider.connection.getTransaction(sign);
     const eventIx = txData.meta?.innerInstructions[0].instructions[0];
@@ -388,7 +329,7 @@ describe('zk-voting-system', () => {
     const base64Data = utils.bytes.base64.encode(rawData.subarray(8));
     const event = program.coder.events.decode(base64Data);
 
-    console.log("event", {event});
+    console.log("event", { event });
 
     currentElection = await program.account.election.fetch(electionAccountAddress)
     console.log("vote - currentElection", { currentElection });
