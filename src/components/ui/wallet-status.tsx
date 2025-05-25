@@ -3,7 +3,7 @@ import { WalletButton } from "../solana/solana-provider";
 import { Popover, PopoverContent, PopoverTrigger } from "@radix-ui/react-popover";
 import {IconLogout, IconWallet} from '@tabler/icons-react';
 
-const WalletStatus = () => {
+export const WalletStatus = () => {
   const { connected, disconnect, publicKey } = useWalletDisconnect();
   
   if (!connected) {
