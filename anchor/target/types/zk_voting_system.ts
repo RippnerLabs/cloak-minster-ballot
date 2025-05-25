@@ -451,6 +451,10 @@ export type ZkVotingSystem = {
           }
         },
         {
+          "name": "spentNullifiersIpfsCid",
+          "type": "string"
+        },
+        {
           "name": "option",
           "type": "string"
         }

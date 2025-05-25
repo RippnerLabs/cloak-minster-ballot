@@ -445,6 +445,10 @@
           }
         },
         {
+          "name": "spent_nullifiers_ipfs_cid",
+          "type": "string"
+        },
+        {
           "name": "option",
           "type": "string"
         }

@@ -9,31 +9,35 @@ template SparseNonMembership(depth) {
     signal input curr_root;
     signal output new_root;
 
-    var curr=0;
-    component h_left[depth];
-    for(var i=0;i<depth;i++){
+    // First pass: verify non-membership (value should be 0 at this key position)
+    var curr = 0;
+    component h_nonmember[depth];
+    for(var i = 0; i < depth; i++){
         var is_right = spent_path[i];
         var l = (is_right) * spent_siblings[i] + (1-is_right) * curr;
         var r = (is_right) * curr + (1-is_right) * spent_siblings[i];
 
-        h_left[i] = Poseidon(2);
-        h_left[i].inputs[0] <-- l;
-        h_left[i].inputs[1] <-- r;
-        curr = h_left[i].out;
+        h_nonmember[i] = Poseidon(2);
+        h_nonmember[i].inputs[0] <-- l;
+        h_nonmember[i].inputs[1] <-- r;
+        curr = h_nonmember[i].out;
     }
 
+    // Verify that the computed root matches the current spent tree root
     curr_root === curr;
 
-    curr=1;
-    component h_right[depth];
-    for(var i=0;i<depth;i++) {
+    // Second pass: compute new root after setting this key to 1 (marking as spent)
+    curr = 1;
+    component h_member[depth];
+    for(var i = 0; i < depth; i++) {
         var is_right = spent_path[i];
-        var l2 = (is_right) * spent_siblings[i] + (1-is_right)* curr;
+        var l2 = (is_right) * spent_siblings[i] + (1-is_right) * curr;
         var r2 = (is_right) * curr + (1-is_right) * spent_siblings[i];
-        h_right[i] = Poseidon(2);
-        h_right[i].inputs[0] <-- l2;
-        h_right[i].inputs[1] <-- r2;
-        curr = h_right[i].out;
+        
+        h_member[i] = Poseidon(2);
+        h_member[i].inputs[0] <-- l2;
+        h_member[i].inputs[1] <-- r2;
+        curr = h_member[i].out;
     }
 
     new_root <== curr;

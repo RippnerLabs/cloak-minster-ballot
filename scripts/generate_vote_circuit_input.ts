@@ -1,22 +1,7 @@
-/**
- *  scripts/generate_vote_circuit_input.ts
- *  --------------------------------------
- *  Generates the input.json for vote.circom,
- *  **works even for the very first voter**.
- *
- *  $ npm i -D esrun typescript
- *  $ npm i circomlibjs
- *  $ npx esrun scripts/generate_vote_circuit_input.ts
- */
-
 import fs from "node:fs/promises";
 import { buildPoseidon } from "circomlibjs";
 
 const DEPTH = 20;
-
-/* ------------------------------------------------------------------ *
- * 1. Poseidon helpers                                                 *
- * ------------------------------------------------------------------ */
 const poseidon = await buildPoseidon();
 const F = poseidon.F;
 const H = (l: bigint, r: bigint) => F.toObject(poseidon([l, r]));

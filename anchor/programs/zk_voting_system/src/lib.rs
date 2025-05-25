@@ -28,7 +28,7 @@ pub mod zk_voting_system {
         return close_registration_handler(ctx, name);
     }
 
-    pub fn vote(ctx: Context<Vote>, name: String, proof_a: [u8; 64], proof_b: [u8; 128], proof_c: [u8; 64], merkle_rootmembership_merkle_root: [u8; 32], new_spent_root: [u8;32], option: String) -> Result<()> {
-        return vote_handler(ctx,name, proof_a, proof_b, proof_c, merkle_rootmembership_merkle_root, new_spent_root, option);
+    pub fn vote(ctx: Context<Vote>, name: String, proof_a: [u8; 64], proof_b: [u8; 128], proof_c: [u8; 64], merkle_rootmembership_merkle_root: [u8; 32], new_spent_root: [u8;32], spent_nullifiers_ipfs_cid: String, option: String) -> Result<()> {
+        return vote_handler(ctx,name, proof_a, proof_b, proof_c, merkle_rootmembership_merkle_root, new_spent_root, spent_nullifiers_ipfs_cid, option);
     }
 }

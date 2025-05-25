@@ -1,33 +1,110 @@
-import { ChildNodes, SMT } from "@zk-kit/smt";
-import { poseidon2, poseidon3 } from "poseidon-lite";
-// @ts-ignore
-import {poseidon, buildPoseidon} from "circomlibjs"
-export const g1Uncompressed = (curve: any, p1Raw: any) => {
-    const p1 = curve.G1.fromObject(p1Raw);
-    let buff = new Uint8Array(64);
-    curve.G1.toRprUncompressed(buff, 0, p1);
-
-    return Buffer.from(buff);
-}
-
-export const g2Uncompressed = (curve: any, p2Raw: any) => {
-    const p2 = curve.G2.fromObject(p2Raw);
-    let buff = new Uint8Array(128);
-    curve.G2.toRprUncompressed(buff, 0, p2);
-    return Buffer.from(buff);
-}
-export const toHex64Padded = (val: any) => BigInt(val).toString(16).padStart(64, "0");
-export const to32ByteBuffer = (val: any) => Buffer.from(toHex64Padded(val), "hex");
-export function alphaToInt(str: string): bigint {
-    let res = 0n;
-    const A_CODE = "A".charCodeAt(0);
-    for (const ch of str.toUpperCase()) {
-        res = res * 26n + BigInt(ch.charCodeAt(0) - A_CODE + 1);
+const vouchers = [
+    {
+        election: 52208898341821768n,
+        leaf_index: 0,
+        nullifier: '0x0609a0e9fc333fe822ee2c51a80ae65bd3496521c61915c27c7ea9c578d4c104',
+        merkle_root: '0x75a2ce619a659abf8c09750fe3a0440d0f0df1a37e06dc824224e952fd231b17',
+        sibling_hashes: [
+            '0x070da0bbc283fbd04bd3ee6074cf55633405d4b86ea71f4a5702e15c994751dd',
+            '0x0b6e5afa82ce79bf20e18b05073136d017d9eb232cf6143e304f4284993f41d9',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0'
+        ],
+        path_indices: [
+            1, 1, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0
+        ]
+    },
+    {
+        election: 52208898341821768n,
+        leaf_index: 1,
+        nullifier: '0x070da0bbc283fbd04bd3ee6074cf55633405d4b86ea71f4a5702e15c994751dd',
+        merkle_root: '0x75a2ce619a659abf8c09750fe3a0440d0f0df1a37e06dc824224e952fd231b17',
+        sibling_hashes: [
+            '0x0609a0e9fc333fe822ee2c51a80ae65bd3496521c61915c27c7ea9c578d4c104',
+            '0x0b6e5afa82ce79bf20e18b05073136d017d9eb232cf6143e304f4284993f41d9',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0'
+        ],
+        path_indices: [
+            0, 1, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0
+        ]
+    },
+    {
+        election: 52208898341821768n,
+        leaf_index: 2,
+        nullifier: '0x0b6e5afa82ce79bf20e18b05073136d017d9eb232cf6143e304f4284993f41d9',
+        merkle_root: '0x75a2ce619a659abf8c09750fe3a0440d0f0df1a37e06dc824224e952fd231b17',
+        sibling_hashes: [
+            '0x499a8f4f1b3c8a5dabff94487adbe4ba83029ab1556437ea356bf9e996d8c98c',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0',
+            '0'
+        ],
+        path_indices: [
+            0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0
+        ]
     }
-    return res;
-}
+]
 
-export class CustomSMT {
+import { buildPoseidon } from "circomlibjs";
+import * as snarkjs from "snarkjs";
+
+const DEPTH = 20;
+
+// Custom SMT implementation for our specific needs
+class CustomSMT {
     private leaves: Map<string, bigint>;
     private poseidon: any;
     private defaults: bigint[];
@@ -219,17 +296,100 @@ export class CustomSMT {
     }
 }
 
-export const DEPTH = 20;
-
-export const hexToBig = (hex: string) =>
-  BigInt(hex.startsWith("0x") ? hex : `0x${hex}`);
-
-export const toDec = (x: string | bigint) => BigInt(x).toString();
-
-export function buildSpentTree(leaves: bigint[], poseidon: any) {
+function buildSpentTree(leaves: bigint[], poseidon: any) {
     const tree = new CustomSMT(poseidon, DEPTH);
     for (const k of leaves) {
         tree.add(k, 1n);
     }
     return tree;
 }
+
+async function main() {
+    const poseidon = await buildPoseidon();
+    const toDec = (x: string | bigint) => BigInt(x).toString();
+    
+    let leaves: bigint[] = [];
+    const results: any[] = [];
+
+    for (let voucherIndex = 0; voucherIndex < vouchers.length; voucherIndex++) {
+        const voucher = vouchers[voucherIndex];
+        console.log(`\n--- Processing voucher ${voucherIndex} ---`);
+        
+        const nullifier_bigint = BigInt(voucher.nullifier);
+        console.log(`Nullifier: ${nullifier_bigint.toString()}`);
+        
+        // Build spent tree with current leaves
+        const tree = buildSpentTree(leaves, poseidon);
+        
+        // Check if nullifier already exists
+        if (tree.has(nullifier_bigint)) {
+            console.error(`❌ Nullifier already exists in spent tree!`);
+            break;
+        }
+        
+        // Generate non-membership proof
+        const proof = tree.createNonMembershipProof(nullifier_bigint);
+        
+        // Verify the proof
+        // const isValid = tree.verifyNonMembershipProof(nullifier_bigint, proof.siblings, proof.pathBits, proof.root);
+        // if (!isValid) {
+        //     console.error(`❌ Non-membership proof verification failed!`);
+        //     console.log(`Debug: Expected root ${proof.root}, tree has ${leaves.length} leaves`);
+        //     // Continue anyway to see if circuit handles it
+        // }
+        
+        // Prepare circuit inputs
+        const input = {
+            identity_nullifier: toDec(nullifier_bigint),
+            membership_merke_tree_siblings: [...voucher.sibling_hashes, ...Array(20 - voucher.sibling_hashes.length).fill('0')],
+            membership_merke_tree_path_indices: [...voucher.path_indices, ...Array(20 - voucher.path_indices.length).fill(0)].map(String),
+            
+            spent_root: toDec(proof.root),
+            spent_siblings: proof.siblings.map(s => s.toString()),
+            spent_path: proof.pathBits.map(String)
+        };
+        
+        // Generate circuit proof
+        try {
+            console.log(`🔄 Generating proof for voucher ${voucherIndex}...`);
+            const { proof: circuitProof, publicSignals } = await snarkjs.groth16.fullProve(
+                input,
+                "./circom/vote_js/vote.wasm",
+                "./circom/vote_js/1_0000.zkey"
+            );
+            
+            console.log(`✅ Circuit proof generated successfully for voucher ${voucherIndex}`);
+            console.log(`Membership root: ${publicSignals[0]}`);
+            console.log(`New spent root: ${publicSignals[1]}`);
+            
+            results.push({
+                voucherIndex,
+                nullifier: nullifier_bigint.toString(),
+                proof: circuitProof,
+                publicSignals,
+                membershipRoot: publicSignals[0],
+                newSpentRoot: publicSignals[1]
+            });
+            
+            // Add nullifier to spent leaves for next iteration
+            leaves.push(nullifier_bigint);
+            
+        } catch (error) {
+            console.error(`❌ Error generating circuit proof for voucher ${voucherIndex}:`, error);
+            break;
+        }
+    }
+    
+    console.log(`\n🎉 Processing completed! Generated ${results.length} proofs.`);
+    
+    // Output results summary
+    console.log('\n--- Results Summary ---');
+    results.forEach((result, index) => {
+        console.log(`Voucher ${result.voucherIndex}:`);
+        console.log(`  Nullifier: ${result.nullifier.slice(0, 20)}...`);
+        console.log(`  Membership Root: ${result.membershipRoot}`);
+        console.log(`  New Spent Root: ${result.newSpentRoot}`);
+    });
+}
+
+main().catch(console.error);
