@@ -14,7 +14,7 @@ import MerkleTree from "merkletreejs";
 // @ts-ignore
 import {poseidon} from "circomlibjs"
 
-async function registerVoter(secret: Uint8Array, election_name_str: string, program: Program<ZkVotingSystem>, signer: anchor.web3.Keypair, provider: Provider, connection: anchor.web3.Connection, ipfs: any) {
+export async function registerVoter(secret: Uint8Array, election_name_str: string, program: Program<ZkVotingSystem>, signer: anchor.web3.Keypair, provider: Provider, connection: anchor.web3.Connection, ipfs: any) {
     const electionIdBigInt = alphaToInt(election_name_str);
     const secretKeyBigInt = BigInt('0x' + Buffer.from(secret).toString('hex'));
 
@@ -49,7 +49,7 @@ async function registerVoter(secret: Uint8Array, election_name_str: string, prog
 
     const latestBlockContext = await provider.connection.getLatestBlockhash();
     const tx = new Transaction({
-        feePayer: signer.payer.publicKey,
+        feePayer: signer.publicKey,
         recentBlockhash: latestBlockContext.blockhash,
     });
     tx.add(ix);
@@ -91,12 +91,13 @@ async function registerVoter(secret: Uint8Array, election_name_str: string, prog
         }
         const data = JSON.parse(dataStr);
         const {depth, leaves} = data;
-        leaves_g = leaves;
+        leaves_g = leaves.map(l => Buffer.from(l));
     }
     const leaf = Buffer.from(event?.data.nullifier);
     leaves_g.push(leaf);
+    console.log('leaves_g', JSON.stringify(leaves_g));
     const tree = new MerkleTree(leaves_g, poseidon, { hashLeaves: false, sort: true });
-    const file = JSON.stringify({ depth: 20, leaves: leaves_g.map(l => l.startsWith('0x') ? l : '0x' + l.toString('hex')) });
+    const file = JSON.stringify({ depth: 20, leaves: [...leaves_g, '0x' + leaf.toString('hex')] });
     const { cid } = await ipfs.add({ content: file });
     const root = tree.getRoot();
     await program.methods.updateRoot(Buffer.from(election_name_str), root, Buffer.from(cid.toString()))
@@ -108,6 +109,6 @@ async function registerVoter(secret: Uint8Array, election_name_str: string, prog
 
     currentElection = await program.account.election.fetch(electionAccountAddress)
     expect(currentElection.nullifiersIpfsCid.length).toEqual(46);
-    expect(currentElection.merkleRoot).toEqual(root);
+    expect(currentElection.merkleRoot).toEqual(Array.from(root));
     expect(currentElection.nullifiersIpfsCid).toEqual(cid.toString());
 }

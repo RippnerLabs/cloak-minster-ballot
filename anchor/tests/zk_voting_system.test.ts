@@ -15,6 +15,7 @@ import { MerkleTree } from "merkletreejs";
 import { poseidon, buildPoseidon } from "circomlibjs";
 import { CID, create } from 'ipfs-http-client';
 import { poseidon2, poseidon3 } from "poseidon-lite"
+import { registerVoter } from "./instruction_calls";
 
 function alphaToInt(str: string): bigint {
   let res = 0n;
@@ -41,7 +42,8 @@ describe('zk-voting-system', () => {
   const TREE_DEPTH = 20;
   let voucherGlobal: any;
   const options = ["option1", "option2", "opt3"];
-
+  let users: Keypair[] = [];
+  
   beforeAll(async () => {
     connection = new Connection("http://127.0.0.1:8899", "confirmed");
 
@@ -58,11 +60,19 @@ describe('zk-voting-system', () => {
     election_name = Buffer.from("new election");
     ipfs = create({ url:  ipfsEndpoint})
 
-    userSecrets = [
-      new Uint8Array([123, 83, 2834]),
-      new Uint8Array([981, 12, 812]),
-      new Uint8Array([12]),
-    ]
+    users = [];
+    for (let i=0;i<3;i++){
+      users.push(Keypair.generate())
+    }
+    // Airdrop SOL to users for transaction fees
+    for (const user of users) {
+      const airdropSignature = await connection.requestAirdrop(
+        user.publicKey,
+        2 * anchor.web3.LAMPORTS_PER_SOL
+      );
+      await connection.confirmTransaction(airdropSignature);
+    }
+
   }, 10000)
 
   it('Initialize Election', async () => {
@@ -91,288 +101,11 @@ describe('zk-voting-system', () => {
   })
 
   it("Register voter", async () => {
-    // async function registerVoter(secret: Uint8Array) {
-      const electionIdBigInt = alphaToInt(election_name_str);
-      // const secretKeyBigInt = BigInt('0x' + Buffer.from(secret).toString('hex'));
-      const secretKeyBigInt = BigInt('0x' + Buffer.from(wallet.payer.secretKey).toString('hex'));
-
-      const { proof, publicSignals } = await snarkjs.groth16.fullProve({
-          identity_secret: secretKeyBigInt,
-          election_id: electionIdBigInt,
-        },
-        "../circom/identity_nullifier_js/identity_nullifier.wasm",
-        "../circom/identity_nullifier_js/1_0000.zkey",
-      )
-      console.log("Proof:", JSON.stringify(proof, null, 2));
-      console.log("public signals:", publicSignals);
-      const identity_nullifier = to32ByteBuffer(BigInt(publicSignals[0]));
-
-      const curve = await ff.buildBn128();
-      const proofProc = await ff.utils.unstringifyBigInts(proof);
-      let proofA = g1Uncompressed(curve, proofProc.pi_a);
-      proofA = await convert_proof(proofA);
-      console.log('proofA', proofA);
-      const proofB = g2Uncompressed(curve, proofProc.pi_b);
-      console.log('proofB', proofB);
-      const proofC = g1Uncompressed(curve, proofProc.pi_c);
-      console.log('proofC', proofC);
-
-
-      const ix = await program.methods.registerVoter(election_name, identity_nullifier, proofA, proofB, proofC)
-        .accounts({
-          signer: signer.publicKey
-        })
-        .signers([signer])
-        .instruction();
-
-      const latestBlockContext = await provider.connection.getLatestBlockhash();
-      const tx = new Transaction({
-        feePayer: wallet.payer.publicKey,
-        recentBlockhash: latestBlockContext.blockhash,
-      });
-      tx.add(ix);
-      tx.sign(signer);
-
-      const sign = await anchor.web3.sendAndConfirmTransaction(connection, tx, [wallet.payer], { skipPreflight: true });
-
-      const txData = await provider.connection.getTransaction(sign);
-
-      console.log("meta", JSON.stringify(sign));
-      console.log("txData", JSON.stringify(txData));
-      const eventIx = txData.meta?.innerInstructions[0].instructions[0];
-      const rawData = utils.bytes.bs58.decode(eventIx?.data);
-      const base64Data = utils.bytes.base64.encode(rawData.subarray(8));
-      const event = program.coder.events.decode(base64Data);
-
-      console.log("event", { event });
-      console.log("event", JSON.stringify(event));
-
-      const [electionAccountAddress] = PublicKey.findProgramAddressSync(
-        [Buffer.from("election"), election_name],
-        program.programId
-      )
-      let currentElection = await program.account.election.fetch(electionAccountAddress)
-      console.log("currentElection", { currentElection });
-
-
-      // TODO: Populate leaves from ipfs here
-
-      const leaf = Buffer.from(event?.data.nullifier);
-      leaves.push(leaf);
-      tree = new MerkleTree(leaves, poseidon, { hashLeaves: false, sort: true });
-      const file = JSON.stringify({ depth: 20, leaves: leaves.map(l => '0x' + l.toString('hex')) });
-      const { cid } = await ipfs.add({ content: file });
-      const root = tree.getRoot();
-      await program.methods.updateRoot(election_name, root, Buffer.from(cid.toString()))
-        .accounts({
-          signer: signer.publicKey
-        })
-        .signers([signer])
-        .rpc();
-      
-        console.log("electionAccountAddress", electionAccountAddress);
-      
-      currentElection = await program.account.election.fetch(electionAccountAddress)
-      console.log("[registerVoter] currentElection", currentElection);
-      expect(currentElection.nullifiersIpfsCid.length).toEqual(46);
-    // }
-    // userSecrets.map(async secret => {
-    //   await registerVoter(secret);
-    // })
-
+    for(const user of users) {
+      const _ = await registerVoter(user.secretKey, election_name_str, program, user, provider, connection, ipfs);
+    }
     expect(1).toEqual(1);
-  })
-
-  // it("Register voter - 2", async () => {
-
-  //   // async function registerVoter(secret: Uint8Array) {
-  //     const electionIdBigInt = alphaToInt(election_name_str);
-  //     // const secretKeyBigInt = BigInt('0x' + Buffer.from(secret).toString('hex'));
-  //     const kp= Keypair.generate();
-  //     const secretKeyBigInt = BigInt('0x' + Buffer.from(kp.secretKey).toString('hex'));
-
-  //     const { proof, publicSignals } = await snarkjs.groth16.fullProve({
-  //       identity_secret: secretKeyBigInt,
-  //       election_id: electionIdBigInt,
-  //     },
-  //       "../circom/identity_nullifier_js/identity_nullifier.wasm",
-  //       "../circom/identity_nullifier_js/1_0000.zkey",
-  //     )
-  //     console.log("Proof:", JSON.stringify(proof, null, 2));
-  //     console.log("public signals:", publicSignals);
-  //     const identity_nullifier = to32ByteBuffer(BigInt(publicSignals[0]));
-
-  //     const curve = await ff.buildBn128();
-  //     const proofProc = await ff.utils.unstringifyBigInts(proof);
-  //     let proofA = g1Uncompressed(curve, proofProc.pi_a);
-  //     proofA = await convert_proof(proofA);
-  //     console.log('proofA', proofA);
-  //     const proofB = g2Uncompressed(curve, proofProc.pi_b);
-  //     console.log('proofB', proofB);
-  //     const proofC = g1Uncompressed(curve, proofProc.pi_c);
-  //     console.log('proofC', proofC);
-
-
-  //     const ix = await program.methods.registerVoter(election_name, identity_nullifier, proofA, proofB, proofC)
-  //       .accounts({
-  //         signer: signer.publicKey
-  //       })
-  //       .signers([signer])
-  //       .instruction();
-
-  //     const latestBlockContext = await provider.connection.getLatestBlockhash();
-  //     const tx = new Transaction({
-  //       feePayer: wallet.payer.publicKey,
-  //       recentBlockhash: latestBlockContext.blockhash,
-  //     });
-  //     tx.add(ix);
-  //     tx.sign(signer);
-
-  //     const sign = await anchor.web3.sendAndConfirmTransaction(connection, tx, [wallet.payer], { skipPreflight: true });
-
-  //     const txData = await provider.connection.getTransaction(sign);
-
-  //     console.log("meta", JSON.stringify(sign));
-  //     console.log("txData", JSON.stringify(txData));
-  //     const eventIx = txData.meta?.innerInstructions[0].instructions[0];
-  //     const rawData = utils.bytes.bs58.decode(eventIx?.data);
-  //     const base64Data = utils.bytes.base64.encode(rawData.subarray(8));
-  //     const event = program.coder.events.decode(base64Data);
-
-  //     console.log("event", { event });
-  //     console.log("event", JSON.stringify(event));
-
-  //     const [electionAccountAddress] = PublicKey.findProgramAddressSync(
-  //       [Buffer.from("election"), election_name],
-  //       program.programId
-  //     )
-  //     let currentElection = await program.account.election.fetch(electionAccountAddress)
-  //     console.log("currentElection", { currentElection });
-
-
-  //     // TODO: Populate leaves from ipfs here
-
-  //     const leaf = Buffer.from(event?.data.nullifier);
-  //     leaves.push(leaf);
-  //     tree = new MerkleTree(leaves, poseidon, { hashLeaves: false, sort: true });
-  //     const file = JSON.stringify({ depth: 20, leaves: leaves.map(l => '0x' + l.toString('hex')) });
-  //     const { cid } = await ipfs.add({ content: file });
-  //     const root = tree.getRoot();
-  //     await program.methods.updateRoot(election_name, root, Buffer.from(cid.toString()))
-  //       .accounts({
-  //         signer: signer.publicKey
-  //       })
-  //       .signers([signer])
-  //       .rpc();
-      
-  //       console.log("electionAccountAddress", electionAccountAddress);
-      
-  //     currentElection = await program.account.election.fetch(electionAccountAddress)
-  //     console.log("[registerVoter] currentElection", currentElection);
-  //     expect(currentElection.nullifiersIpfsCid.length).toEqual(46);
-  //   // }
-  //   // userSecrets.map(async secret => {
-  //   //   await registerVoter(secret);
-  //   // })
-
-  //   expect(1).toEqual(1);
-  // })
-
-
-  // it("Register voter - 3", async () => {
-
-  //   // async function registerVoter(secret: Uint8Array) {
-  //     const electionIdBigInt = alphaToInt(election_name_str);
-  //     // const secretKeyBigInt = BigInt('0x' + Buffer.from(secret).toString('hex'));
-  //     const kp= Keypair.generate();
-  //     const secretKeyBigInt = BigInt('0x' + Buffer.from(kp.secretKey).toString('hex'));
-
-  //     const { proof, publicSignals } = await snarkjs.groth16.fullProve({
-  //       identity_secret: secretKeyBigInt,
-  //       election_id: electionIdBigInt,
-  //     },
-  //       "../circom/identity_nullifier_js/identity_nullifier.wasm",
-  //       "../circom/identity_nullifier_js/1_0000.zkey",
-  //     )
-  //     console.log("Proof:", JSON.stringify(proof, null, 2));
-  //     console.log("public signals:", publicSignals);
-  //     const identity_nullifier = to32ByteBuffer(BigInt(publicSignals[0]));
-
-  //     const curve = await ff.buildBn128();
-  //     const proofProc = await ff.utils.unstringifyBigInts(proof);
-  //     let proofA = g1Uncompressed(curve, proofProc.pi_a);
-  //     proofA = await convert_proof(proofA);
-  //     console.log('proofA', proofA);
-  //     const proofB = g2Uncompressed(curve, proofProc.pi_b);
-  //     console.log('proofB', proofB);
-  //     const proofC = g1Uncompressed(curve, proofProc.pi_c);
-  //     console.log('proofC', proofC);
-
-
-  //     const ix = await program.methods.registerVoter(election_name, identity_nullifier, proofA, proofB, proofC)
-  //       .accounts({
-  //         signer: signer.publicKey
-  //       })
-  //       .signers([signer])
-  //       .instruction();
-
-  //     const latestBlockContext = await provider.connection.getLatestBlockhash();
-  //     const tx = new Transaction({
-  //       feePayer: wallet.payer.publicKey,
-  //       recentBlockhash: latestBlockContext.blockhash,
-  //     });
-  //     tx.add(ix);
-  //     tx.sign(signer);
-
-  //     const sign = await anchor.web3.sendAndConfirmTransaction(connection, tx, [wallet.payer], { skipPreflight: true });
-
-  //     const txData = await provider.connection.getTransaction(sign);
-
-  //     console.log("meta", JSON.stringify(sign));
-  //     console.log("txData", JSON.stringify(txData));
-  //     const eventIx = txData.meta?.innerInstructions[0].instructions[0];
-  //     const rawData = utils.bytes.bs58.decode(eventIx?.data);
-  //     const base64Data = utils.bytes.base64.encode(rawData.subarray(8));
-  //     const event = program.coder.events.decode(base64Data);
-
-  //     console.log("event", { event });
-  //     console.log("event", JSON.stringify(event));
-
-  //     const [electionAccountAddress] = PublicKey.findProgramAddressSync(
-  //       [Buffer.from("election"), election_name],
-  //       program.programId
-  //     )
-  //     let currentElection = await program.account.election.fetch(electionAccountAddress)
-  //     console.log("currentElection", { currentElection });
-
-
-  //     // TODO: Populate leaves from ipfs here
-
-  //     const leaf = Buffer.from(event?.data.nullifier);
-  //     leaves.push(leaf);
-  //     tree = new MerkleTree(leaves, poseidon, { hashLeaves: false, sort: true });
-  //     const file = JSON.stringify({ depth: 20, leaves: leaves.map(l => '0x' + l.toString('hex')) });
-  //     const { cid } = await ipfs.add({ content: file });
-  //     const root = tree.getRoot();
-  //     await program.methods.updateRoot(election_name, root, Buffer.from(cid.toString()))
-  //       .accounts({
-  //         signer: signer.publicKey
-  //       })
-  //       .signers([signer])
-  //       .rpc();
-      
-  //       console.log("electionAccountAddress", electionAccountAddress);
-      
-  //     currentElection = await program.account.election.fetch(electionAccountAddress)
-  //     console.log("[registerVoter] currentElection", currentElection);
-  //     expect(currentElection.nullifiersIpfsCid.length).toEqual(46);
-  //   // }
-  //   // userSecrets.map(async secret => {
-  //   //   await registerVoter(secret);
-  //   // })
-
-  //   expect(1).toEqual(1);
-  // })
+  }, 30000)
 
   it("Download vouchers", async () => {
     const getWitness = (tree: MerkleTree, leaf: Buffer, index: number) => {

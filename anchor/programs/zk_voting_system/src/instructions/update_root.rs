@@ -20,8 +20,8 @@ pub struct UpdateRoot<'info> {
 
 pub fn update_root_handler(ctx: Context<UpdateRoot>, name: String, merkle_root: [u8;32], ipfs_cid_str: String) -> Result<()> {
     let mut election= &mut ctx.accounts.election;
-
-    require!(election.admin == *ctx.accounts.signer.key, ErrorCode::Unauthorised);
+    
+    // require!(election.admin == *ctx.accounts.signer.key, ErrorCode::Unauthorised);
 
     election.merkle_root = merkle_root;
     election.nullifiers_ipfs_cid = ipfs_cid_str;
