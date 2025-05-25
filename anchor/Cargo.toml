@@ -2,6 +2,9 @@
 members = [
     "programs/*"
 ]
+exclude = [
+    "tests/proof_utils"
+]
 resolver = "2"
 
 [profile.release]

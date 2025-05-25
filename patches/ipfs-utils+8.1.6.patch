@@ -1,0 +1,13 @@
+diff --git a/node_modules/ipfs-utils/src/http.js b/node_modules/ipfs-utils/src/http.js
+index 9ce142c..14dee08 100644
+--- a/node_modules/ipfs-utils/src/http.js
++++ b/node_modules/ipfs-utils/src/http.js
+@@ -169,7 +169,7 @@ class HTTP {
+    * @param {HTTPOptions} options
+    */
+   post (resource, options = {}) {
+-    return this.fetch(resource, { ...options, method: 'POST' })
++    return this.fetch(resource, { ...options, method: 'POST', duplex: 'half' })
+   }
+ 
+   /**
