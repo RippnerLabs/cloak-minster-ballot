@@ -1,20 +1,14 @@
-import { ChildNodes, SMT } from "@zk-kit/smt";
-import { BN, Program, utils } from '@coral-xyz/anchor';
+import { Program } from '@coral-xyz/anchor';
 import * as anchor from '@coral-xyz/anchor';
-import { PublicKey, Keypair, Connection, Transaction } from '@solana/web3.js';
+import { PublicKey, Keypair, Connection } from '@solana/web3.js';
 import IDL from '../target/idl/zk_voting_system.json';
 import { ZkVotingSystem } from '../target/types/zk_voting_system';
 // @ts-ignore
-import * as snarkjs from "snarkjs";
 // @ts-ignore
-import * as ff from "ffjavascript";
-import { convert_proof } from "./proof_utils/pkg"
-import { g1Uncompressed, g2Uncompressed, to32ByteBuffer } from './utils';
 import { MerkleTree } from "merkletreejs";
 // @ts-ignore
-import { poseidon, buildPoseidon } from "circomlibjs";
-import { CID, create } from 'ipfs-http-client';
-import { poseidon2, poseidon3 } from "poseidon-lite"
+import { poseidon } from "circomlibjs";
+import { create } from 'ipfs-http-client';
 import { downloadVoucher, performVote, registerVoter } from "./instruction_calls";
 
 function alphaToInt(str: string): bigint {

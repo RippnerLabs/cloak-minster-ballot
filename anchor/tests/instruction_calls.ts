@@ -2,7 +2,7 @@
 import * as ff from "ffjavascript";
 // @ts-ignore
 import * as snarkjs from "snarkjs";
-import { alphaToInt, buildSpentTree, g1Uncompressed, g2Uncompressed, hexToBig, makeSpentWitness, rebuildSpentTree, to32ByteBuffer, toDec } from "./utils";
+import { alphaToInt, buildSpentTree, g1Uncompressed, g2Uncompressed, hexToBig, to32ByteBuffer, toDec } from "./utils";
 import { convert_proof } from "./proof_utils/pkg/proof_utils";
 import { ZkVotingSystem } from "anchor/target/types/zk_voting_system";
 import { Program } from "@coral-xyz/anchor";
