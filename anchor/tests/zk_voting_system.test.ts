@@ -133,17 +133,6 @@ describe('zk-voting-system', () => {
   })
 
   it("Perform Vote", async () => {
-    // voucherGlobal
-    // {
-    //   election: alphaToInt(election_name_str),
-    //   depth: 20,
-    //   leaf_index: index,
-    //   nullifier: leaves[index].toString('hex'),
-    //   merkle_root: '0x' + tree.getRoot().toString('hex'),
-    //   sibling_hashes,
-    //   path_indices
-    // }
-    // console.log("vouchers",vouchers);
     for(let i=0; i<users.length; i++) {
       await performVote(vouchers[i], election_name_str, program, signer, provider, connection, ipfs, options[0]);
     }
