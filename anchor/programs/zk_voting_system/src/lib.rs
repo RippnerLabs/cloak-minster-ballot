@@ -12,8 +12,8 @@ declare_id!("2VfZZTtpr8Av9W2XmnJSSc3CLRVp3RLfUcds2gi2exuy");
 pub mod zk_voting_system {
     use super::*;
 
-    pub fn init_election(ctx: Context<InitElection>, name: String, is_registration_open: bool, is_voting_open: bool , options: Vec<String>) -> Result<()> {
-        return init_election_handler(ctx,name,is_registration_open,is_voting_open, options);
+    pub fn init_election(ctx: Context<InitElection>, name: String, options: Vec<String>) -> Result<()> {
+        return init_election_handler(ctx,name, options);
     }
 
     pub fn register_voter(ctx: Context<RegisterVoter>, name: String, nullifier: [u8; 32], proof_a: [u8; 64], proof_b: [u8; 128], proof_c: [u8; 64]) -> Result<()> {
@@ -28,7 +28,7 @@ pub mod zk_voting_system {
         return close_registration_handler(ctx, name);
     }
 
-    pub fn vote(ctx: Context<Vote>, name: String, proof_a: [u8; 64], proof_b: [u8; 128], proof_c: [u8; 64], nullifier: [u8; 32], merkle_root: [u8; 32], option: String) -> Result<()> {
-        return vote_handler(ctx,name, proof_a, proof_b, proof_c, nullifier, merkle_root, option);
+    pub fn vote(ctx: Context<Vote>, name: String, proof_a: [u8; 64], proof_b: [u8; 128], proof_c: [u8; 64], merkle_rootmembership_merkle_root: [u8; 32], new_spent_root: [u8;32], option: String) -> Result<()> {
+        return vote_handler(ctx,name, proof_a, proof_b, proof_c, merkle_rootmembership_merkle_root, new_spent_root, option);
     }
 }

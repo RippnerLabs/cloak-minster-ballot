@@ -122,14 +122,6 @@ export type ZkVotingSystem = {
           "type": "string"
         },
         {
-          "name": "isRegistrationOpen",
-          "type": "bool"
-        },
-        {
-          "name": "isVotingOpen",
-          "type": "bool"
-        },
-        {
           "name": "options",
           "type": {
             "vec": "string"
@@ -441,7 +433,7 @@ export type ZkVotingSystem = {
           }
         },
         {
-          "name": "nullifier",
+          "name": "merkleRootmembershipMerkleRoot",
           "type": {
             "array": [
               "u8",
@@ -450,7 +442,7 @@ export type ZkVotingSystem = {
           }
         },
         {
-          "name": "merkleRoot",
+          "name": "newSpentRoot",
           "type": {
             "array": [
               "u8",

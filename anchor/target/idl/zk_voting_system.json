@@ -116,14 +116,6 @@
           "type": "string"
         },
         {
-          "name": "is_registration_open",
-          "type": "bool"
-        },
-        {
-          "name": "is_voting_open",
-          "type": "bool"
-        },
-        {
           "name": "options",
           "type": {
             "vec": "string"
@@ -435,7 +427,7 @@
           }
         },
         {
-          "name": "nullifier",
+          "name": "merkle_rootmembership_merkle_root",
           "type": {
             "array": [
               "u8",
@@ -444,7 +436,7 @@
           }
         },
         {
-          "name": "merkle_root",
+          "name": "new_spent_root",
           "type": {
             "array": [
               "u8",
