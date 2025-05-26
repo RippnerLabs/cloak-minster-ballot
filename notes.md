@@ -12,3 +12,11 @@ node_modules/ipfs-utils/src/http.js:127
 ➜  anchor git:(main) ✗ ipfs config --json API.HTTPHeaders.Access-Control-Allow-Credentials '["true"]'
 ipfs config --json API.HTTPHeaders.Access-Control-Allow-Headers \
   '["Content-Type","Authorization"]'
+
+
+    "pkg:proof_utils": "cd ./anchor/tests/proof_utils && cargo install wasm-pack && wasm-pack build --target bundler && cd -",
+
+--target nodejs / web / bundler
+
+1/ update the @dashboard-ui.tsx to go to /voucher for a particular election and where the input can paste the secret in hex
+2/ /voucher @voucher.ui.tsx should take the url param to facilite downloading a voucher for one election at a time

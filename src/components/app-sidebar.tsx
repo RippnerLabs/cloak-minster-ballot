@@ -13,6 +13,7 @@ import {
   Receipt,
   Plus,
   ToggleLeft,
+  Download,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -97,6 +98,10 @@ const data = {
         {
           title: "Register",
           url: "/register",
+        },
+        {
+          title: "Download Voucher",
+          url: "/voucher",
         },
         {
           title: "Cast Vote",

@@ -103,12 +103,14 @@ export function useNewElection() {
       }
 
       // Create the election - wallet will automatically sign
-      return await program.methods
+      await program.methods
         .initElection(name, options)
         .accounts({
           signer: provider.wallet.publicKey,
         })
         .rpc()
+
+      return true;
     },
     onSuccess: (signature) => {
       transactionToast(signature)

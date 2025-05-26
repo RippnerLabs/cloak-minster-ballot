@@ -23,12 +23,14 @@ import {
   Crown,
   Zap,
   MoreHorizontal,
-  Eye
+  Eye,
+  Settings
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTransactionToast } from '@/components/use-transaction-toast';
 import { WalletButton } from '../solana/solana-provider';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { useRouter } from 'next/navigation';
 
 function ElectionStatusBadge({ election }: { election: any }) {
   const now = Date.now() / 1000;
@@ -52,14 +54,23 @@ function ElectionStatusBadge({ election }: { election: any }) {
 
 function ElectionCard({ election }: { election: any }) {
   const { getElectionStats } = useZkVotingProgram();
+  const router = useRouter();
   const stats = getElectionStats(election);
+  
+  const canDownloadVoucher = !election.account?.isRegistrationOpen && election.account?.isVotingOpen;
+  const electionName = election.account?.name || 'Unnamed Election';
+  
+  const handleDownloadVoucher = () => {
+    const encodedName = encodeURIComponent(electionName);
+    router.push(`/voucher?election=${encodedName}`);
+  };
   
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
-            <CardTitle className="text-lg">{election.account?.name || 'Unnamed Election'}</CardTitle>
+            <CardTitle className="text-lg">{electionName}</CardTitle>
             <CardDescription className="text-sm">
               {election.account?.description || 'No description available'}
             </CardDescription>
@@ -91,9 +102,21 @@ function ElectionCard({ election }: { election: any }) {
             <Eye className="w-4 h-4 mr-1" />
             View
           </Button>
-          <Button variant="outline" size="sm" className="flex-1">
-            <MoreHorizontal className="w-4 h-4" />
-          </Button>
+          {canDownloadVoucher ? (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex-1 bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+              onClick={handleDownloadVoucher}
+            >
+              <Vote className="w-4 h-4 mr-1" />
+              Voucher
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" className="flex-1" disabled>
+              <MoreHorizontal className="w-4 h-4" />
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -102,6 +125,7 @@ function ElectionCard({ election }: { election: any }) {
 
 function StatsOverview() {
   const { elections, adminElections } = useZkVotingProgram();
+  const router = useRouter();
   
   if (!elections || elections.length === 0) {
     return (
@@ -183,6 +207,7 @@ function StatsOverview() {
 function ElectionTable() {
   const { elections, isLoading, getElectionStats } = useZkVotingProgram();
   const { publicKey } = useWallet();
+  const router = useRouter();
   const [showOnlyMine, setShowOnlyMine] = useState(false);
 
   if (isLoading) {
@@ -205,6 +230,11 @@ function ElectionTable() {
   const filteredElections = showOnlyMine 
     ? elections?.filter((e: any) => publicKey && e.account?.admin?.equals(publicKey)) || []
     : elections || [];
+
+  const handleDownloadVoucher = (electionName: string) => {
+    const encodedName = encodeURIComponent(electionName);
+    router.push(`/voucher?election=${encodedName}`);
+  };
 
   return (
     <Card>
@@ -233,18 +263,21 @@ function ElectionTable() {
               <TableHead>Total Votes</TableHead>
               <TableHead>Leading Option</TableHead>
               <TableHead>Admin</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredElections.map((election: any) => {
               const stats = getElectionStats(election);
               const isMyElection = publicKey && election.account?.admin?.equals(publicKey);
+              const canDownloadVoucher = !election.account?.isRegistrationOpen && election.account?.isVotingOpen;
+              const electionName = election.account?.name || 'Unnamed Election';
               
               return (
                 <TableRow key={election.publicKey.toString()}>
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
-                      {election.account?.name || 'Unnamed Election'}
+                      {electionName}
                       {isMyElection && <Crown className="w-4 h-4 text-yellow-500" />}
                     </div>
                   </TableCell>
@@ -256,6 +289,23 @@ function ElectionTable() {
                   <TableCell>{stats.leadingOption || 'N/A'}</TableCell>
                   <TableCell className="font-mono text-xs">
                     {election.account?.admin?.toString().slice(0, 8)}...
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm">
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      {canDownloadVoucher && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                          onClick={() => handleDownloadVoucher(electionName)}
+                        >
+                          <Vote className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               );
@@ -274,6 +324,7 @@ function ElectionTable() {
 
 function MainContent() {
   const { elections, isLoading } = useZkVotingProgram();
+  const router = useRouter();
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-6">
@@ -292,6 +343,57 @@ function MainContent() {
 
       {/* Stats Overview */}
       <StatsOverview />
+
+      {/* Quick Actions */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="p-6">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-lg bg-purple-100 dark:bg-purple-900">
+              <Settings className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold">Phase Management</h3>
+              <p className="text-sm text-muted-foreground">Control election phases and transitions</p>
+            </div>
+            <Button 
+              variant="outline" 
+              onClick={() => router.push('/dashboard/phase')}
+            >
+              Manage
+            </Button>
+          </div>
+        </Card>
+        
+        <Card className="p-6">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-lg bg-green-100 dark:bg-green-900">
+              <Vote className="w-6 h-6 text-green-600 dark:text-green-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold">Create Election</h3>
+              <p className="text-sm text-muted-foreground">Start a new election</p>
+            </div>
+            <Button variant="outline">
+              Create
+            </Button>
+          </div>
+        </Card>
+        
+        <Card className="p-6">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-900">
+              <BarChart3 className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold">View Results</h3>
+              <p className="text-sm text-muted-foreground">Analyze election results</p>
+            </div>
+            <Button variant="outline">
+              Analyze
+            </Button>
+          </div>
+        </Card>
+      </div>
 
       {/* Recent Elections Grid */}
       <div className="space-y-4">

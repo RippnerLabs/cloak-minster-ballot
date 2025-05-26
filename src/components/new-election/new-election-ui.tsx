@@ -53,6 +53,7 @@ const STEPS = [
 ]
 
 function MainContent() {
+  const router = useRouter();
   const { connected } = useWallet()
   const { createElection, checkNameAvailability } = useNewElection()
   const [currentStep, setCurrentStep] = useState(1)
@@ -139,8 +140,10 @@ function MainContent() {
         options: data.options.filter(option => option.trim() !== '')
       }
       
-      await createElection.mutateAsync(formData)
-      redirect('/dashboard')
+      const success = await createElection.mutateAsync(formData)
+      if (success) {
+        router.push('/dashboard')
+      }
     } catch (error) {
       console.error('Failed to create election:', error)
     }
