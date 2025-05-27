@@ -16,7 +16,7 @@ import type { ZkVotingSystem } from '../../../anchor/target/types/zk_voting_syst
 import { alphaToInt, to32ByteBuffer, g1Uncompressed, g2Uncompressed } from '@/lib/utils'
 import MerkleTree from 'merkletreejs'
 import { ipfs } from "@/lib/ipfs";
-import { CID } from "ipfs-http-client";
+import { ZKProof } from "@/types";
 
 // Dynamic imports for snarkjs and other ZK dependencies
 const loadSnarkjs = async () => {
@@ -56,15 +56,6 @@ export interface RegistrationStep {
     title: string
     description: string
     isComplete: boolean
-}
-
-export interface ZKProof {
-    proof: any
-    publicSignals: string[]
-    identityNullifier: Uint8Array
-    proofA: Uint8Array
-    proofB: Uint8Array
-    proofC: Uint8Array
 }
 
 // Helper function to get the program instance
