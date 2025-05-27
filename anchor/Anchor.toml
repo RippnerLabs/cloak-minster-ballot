@@ -15,7 +15,7 @@ zk_voting_system = "2VfZZTtpr8Av9W2XmnJSSc3CLRVp3RLfUcds2gi2exuy"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "devnet"
+cluster = "localnet"
 wallet = "./keys/signer.json"
 
 [scripts]
