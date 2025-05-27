@@ -24,6 +24,11 @@ ipfs config --json API.HTTPHeaders.Access-Control-Allow-Headers \
 ipfs config --json API.HTTPHeaders.Access-Control-Allow-Origin \
   '["http://localhost:3000"]'
 
+
+ipfs config --json API.HTTPHeaders.Access-Control-Allow-Origin \
+  '["https://cloak-minster-ballot.rippner.com"]'
+
+
 ➜  anchor git:(main) ✗ ipfs config --json API.HTTPHeaders.Access-Control-Allow-Methods \
   '["GET","POST","PUT","OPTIONS"]'
 
@@ -32,3 +37,8 @@ ipfs config --json API.HTTPHeaders.Access-Control-Allow-Headers \
   '["Content-Type","Authorization"]'
 
 ➜  anchor git:(main) ✗ ipfs daemon
+
+
+b931a7756dcf03509403e296faee4b40f2afd7977ccc2a10b01b15974a587b4242dc7ea469c6c4d6d09cc459f94584eec10119297313dc0aa3bead9fb4cf4006
+
+solana program close --buffers

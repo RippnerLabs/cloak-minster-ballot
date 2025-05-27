@@ -16,6 +16,8 @@ pub struct ConcludeElection<'info> {
 
 pub fn conclude_election_handler(ctx: Context<ConcludeElection>, name: String) -> Result<()> {
     let election = &mut ctx.accounts.election;
+    election.is_registration_open = false;
+    election.is_voting_open = false;
     election.is_voting_concluded = true;
     Ok(())
 }

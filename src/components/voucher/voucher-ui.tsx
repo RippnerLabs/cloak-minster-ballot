@@ -4,7 +4,8 @@ import React, { useState, useRef } from 'react'
 import { useWallet } from "@solana/wallet-adapter-react"
 import { ConnectWallet } from "../connect-wallet"
 import { SidebarUI } from "../sidebar/sidebar-ui"
-import { useVoucherManager, Election, VoucherData } from './voucher-data-access'
+import { useVoucherManager, Election } from './voucher-data-access'
+import { VoucherData } from '@/types'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -426,16 +427,27 @@ function VoucherGenerationStep({
   const { downloadVoucher, isGeneratingProof } = useVoucherManager()
   const [isGenerating, setIsGenerating] = useState(false)
 
+  // Debug logging
+  React.useEffect(() => {
+    console.log('VoucherGenerationStep mounted with election:', election?.name)
+    return () => {
+      console.log('VoucherGenerationStep unmounted')
+    }
+  }, [election?.name])
+
   const handleGenerateVoucher = async () => {
+    console.log('Starting voucher generation for election:', election.name)
     setIsGenerating(true)
     try {
       const voucher = await downloadVoucher.mutateAsync({
         secretKey,
         electionName: election.name
       })
+      console.log('Voucher generation successful, calling onVoucherGenerated')
       onVoucherGenerated(voucher)
     } catch (error) {
       console.error('Failed to generate voucher:', error)
+      toast.error('Failed to generate voucher: ' + (error as Error).message)
     } finally {
       setIsGenerating(false)
     }
@@ -572,6 +584,7 @@ function VoucherGenerationStep({
 
 function VoucherDisplayStep({ voucher }: { voucher: VoucherData }) {
   const { exportVoucherToJSON } = useVoucherManager()
+  const router = useRouter()
   const [showRawData, setShowRawData] = useState(false)
   const [copiedField, setCopiedField] = useState<string | null>(null)
 
@@ -697,10 +710,18 @@ function VoucherDisplayStep({ voucher }: { voucher: VoucherData }) {
 
             <Separator />
 
-            <div className="flex gap-4">
+            <div className="flex gap-4 flex-wrap">
               <Button onClick={downloadVoucherFile} className="flex-1">
                 <Download className="w-4 h-4 mr-2" />
                 Download Voucher
+              </Button>
+              
+              <Button 
+                onClick={() => router.push(`/vote?election=${encodeURIComponent(voucher.electionName)}`)}
+                className="flex-1 bg-green-600 hover:bg-green-700"
+              >
+                <Vote className="w-4 h-4 mr-2" />
+                Proceed to Vote
               </Button>
               
               <Button 
@@ -745,16 +766,27 @@ function VoucherDisplayStep({ voucher }: { voucher: VoucherData }) {
 
 function VoucherWizard() {
   const searchParams = useSearchParams()
-  const { getElectionByName } = useVoucherManager()
+  const { availableElections } = useVoucherManager()
   const electionFromUrl = searchParams.get('election')
   
-  // Auto-select election from URL parameter
-  const preSelectedElection = electionFromUrl ? getElectionByName(electionFromUrl) : null
-  
-  const [currentStep, setCurrentStep] = useState(preSelectedElection ? 2 : 1) // Skip election selection if provided
-  const [selectedElection, setSelectedElection] = useState<Election | null>(preSelectedElection)
+  const [currentStep, setCurrentStep] = useState(1)
+  const [selectedElection, setSelectedElection] = useState<Election | null>(null)
   const [secretKey, setSecretKey] = useState<Uint8Array | null>(null)
   const [generatedVoucher, setGeneratedVoucher] = useState<VoucherData | null>(null)
+  const [preSelectedElection, setPreSelectedElection] = useState<Election | null>(null)
+
+  // Auto-select election from URL parameter when elections are loaded
+  React.useEffect(() => {
+    if (electionFromUrl && availableElections && availableElections.length > 0) {
+      const decodedName = decodeURIComponent(electionFromUrl)
+      const election = availableElections.find(e => e.name === decodedName)
+      if (election) {
+        setPreSelectedElection(election)
+        setSelectedElection(election)
+        setCurrentStep(2) // Skip election selection
+      }
+    }
+  }, [electionFromUrl, availableElections])
 
   const steps = [
     { number: 1, title: "Select Election", description: "Choose the election to vote in" },
@@ -765,20 +797,21 @@ function VoucherWizard() {
 
   const canProceedToStep = (step: number): boolean => {
     switch (step) {
-      case 2: return !!selectedElection
-      case 3: return !!selectedElection && !!secretKey
-      case 4: return !!selectedElection && !!secretKey && !!generatedVoucher
+      case 2: return !!(selectedElection || preSelectedElection)
+      case 3: return !!(selectedElection || preSelectedElection) && !!secretKey
+      case 4: return !!(selectedElection || preSelectedElection) && !!secretKey && !!generatedVoucher
       default: return true
     }
   }
 
   const resetWizard = () => {
-    setCurrentStep(preSelectedElection ? 2 : 1) // Reset to appropriate starting step
-    if (!preSelectedElection) {
-      setSelectedElection(null)
-    }
+    setCurrentStep(1)
+    setSelectedElection(preSelectedElection) // Keep pre-selected election if any
     setSecretKey(null)
     setGeneratedVoucher(null)
+    if (preSelectedElection) {
+      setCurrentStep(2) // Skip to step 2 if election is pre-selected
+    }
   }
 
   return (
@@ -823,7 +856,7 @@ function VoucherWizard() {
                   {currentStep > step.number ? (
                     <CheckCircle className="w-4 h-4" />
                   ) : (
-                    preSelectedElection && step.number > 1 ? step.number - 1 : step.number
+                    step.number
                   )}
                 </div>
                 <div className="ml-3 min-w-0 flex-1">
@@ -855,15 +888,18 @@ function VoucherWizard() {
           />
         )}
         
-        {currentStep === 3 && selectedElection && secretKey && (
-          <VoucherGenerationStep 
-            election={selectedElection}
-            secretKey={secretKey}
-            onVoucherGenerated={(voucher) => {
-              setGeneratedVoucher(voucher)
-              setCurrentStep(4)
-            }}
-          />
+        {currentStep === 3 && (selectedElection || preSelectedElection) && secretKey && (
+          <div>
+            <VoucherGenerationStep 
+              election={selectedElection || preSelectedElection}
+              secretKey={secretKey}
+              onVoucherGenerated={(voucher) => {
+                console.log('Voucher generated successfully:', voucher)
+                setGeneratedVoucher(voucher)
+                setCurrentStep(4)
+              }}
+            />
+          </div>
         )}
         
         {currentStep === 4 && generatedVoucher && (
@@ -877,7 +913,7 @@ function VoucherWizard() {
           <Button 
             variant="outline"
             onClick={() => {
-              if (currentStep > (preSelectedElection ? 2 : 1)) {
+              if (currentStep > 1 && (!preSelectedElection || currentStep > 2)) {
                 setCurrentStep(currentStep - 1)
               } else {
                 resetWizard()
@@ -886,16 +922,19 @@ function VoucherWizard() {
             disabled={currentStep === 3} // Disable back during generation
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            {currentStep === (preSelectedElection ? 2 : 1) ? 'Reset' : 'Previous'}
+            {(currentStep === 1 || (preSelectedElection && currentStep === 2)) ? 'Reset' : 'Previous'}
           </Button>
           
           <div className="text-sm text-muted-foreground">
-            Step {preSelectedElection ? currentStep - 1 : currentStep} of {preSelectedElection ? 3 : 4}
+            Step {preSelectedElection ? Math.max(1, currentStep - 1) : currentStep} of {preSelectedElection ? 3 : 4}
           </div>
           
           {currentStep < 4 && currentStep !== 3 && (
             <Button 
-              onClick={() => setCurrentStep(currentStep + 1)}
+              onClick={() => {
+                console.log('Next button clicked! Current step:', currentStep, 'Moving to:', currentStep + 1)
+                setCurrentStep(currentStep + 1)
+              }}
               disabled={!canProceedToStep(currentStep + 1)}
             >
               Next

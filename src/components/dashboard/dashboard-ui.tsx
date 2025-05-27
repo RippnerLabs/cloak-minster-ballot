@@ -22,6 +22,7 @@ import {
   BarChart3,
   Crown,
   Zap,
+  Download,
   MoreHorizontal,
   Eye,
   Settings,
@@ -59,6 +60,7 @@ function ElectionCard({ election }: { election: any }) {
   const stats = getElectionStats(election);
   
   const canVote = !election.account?.isRegistrationOpen && election.account?.isVotingOpen;
+  const canVoucher = canVote;
   const electionName = election.account?.name || 'Unnamed Election';
   
   const handleVoteInElection = () => {
@@ -108,6 +110,17 @@ function ElectionCard({ election }: { election: any }) {
             <Eye className="w-4 h-4 mr-1" />
             View
           </Button>
+          {canVoucher && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex-1"
+              onClick={() => router.push(`/voucher?election=${encodeURIComponent(electionName)}`)}
+            >
+              <Download className="w-4 h-4 mr-1" />
+              Voucher
+            </Button>
+          )}
           {canVote ? (
             <Button 
               variant="default" 
@@ -294,6 +307,7 @@ function ElectionTable() {
               const stats = getElectionStats(election);
               const isMyElection = publicKey && election.account?.admin?.equals(publicKey);
               const canVote = !election.account?.isRegistrationOpen && election.account?.isVotingOpen;
+              const canVoucher = canVote;
               const electionName = election.account?.name || 'Unnamed Election';
               
               return (
@@ -324,6 +338,16 @@ function ElectionTable() {
                         <Eye className="w-4 h-4 mr-1" />
                         View
                       </Button>
+                      {canVoucher && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex-1"
+                          onClick={() => router.push(`/voucher?election=${encodeURIComponent(electionName)}`)}
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
+                      )}
                       {canVote ? (
                         <Button 
                           variant="default" 
