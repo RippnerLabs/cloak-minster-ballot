@@ -31,7 +31,7 @@ describe('zk-voting-system', () => {
   let wallet: anchor.Wallet;
   let ipfs: any;
   let userSecrets: Uint8Array[];
-  const ipfsEndpoint: string = "http://127.0.0.1:5001/api/v0";
+  const ipfsEndpoint: string = "https://ipfs.rippner.com/api/v0";
   const election_name_str = "new election";
   const TREE_DEPTH = 20;
   let voucherGlobal: any;

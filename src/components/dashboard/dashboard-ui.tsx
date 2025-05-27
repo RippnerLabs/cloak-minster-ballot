@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SidebarUI } from '../sidebar/sidebar-ui';
 import { useZkVotingProgram } from './dashboard-data-access';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -57,12 +57,12 @@ function ElectionCard({ election }: { election: any }) {
   const router = useRouter();
   const stats = getElectionStats(election);
   
-  const canDownloadVoucher = !election.account?.isRegistrationOpen && election.account?.isVotingOpen;
+  const canVote = !election.account?.isRegistrationOpen && election.account?.isVotingOpen;
   const electionName = election.account?.name || 'Unnamed Election';
   
-  const handleDownloadVoucher = () => {
+  const handleVoteInElection = () => {
     const encodedName = encodeURIComponent(electionName);
-    router.push(`/voucher?election=${encodedName}`);
+    router.push(`/vote?election=${encodedName}`);
   };
   
   return (
@@ -102,15 +102,15 @@ function ElectionCard({ election }: { election: any }) {
             <Eye className="w-4 h-4 mr-1" />
             View
           </Button>
-          {canDownloadVoucher ? (
+          {canVote ? (
             <Button 
-              variant="outline" 
+              variant="default" 
               size="sm" 
-              className="flex-1 bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-              onClick={handleDownloadVoucher}
+              className="flex-1 bg-green-600 hover:bg-green-700"
+              onClick={handleVoteInElection}
             >
               <Vote className="w-4 h-4 mr-1" />
-              Voucher
+              Vote Now
             </Button>
           ) : (
             <Button variant="outline" size="sm" className="flex-1" disabled>
@@ -231,9 +231,9 @@ function ElectionTable() {
     ? elections?.filter((e: any) => publicKey && e.account?.admin?.equals(publicKey)) || []
     : elections || [];
 
-  const handleDownloadVoucher = (electionName: string) => {
+  const handleVoteInElection = (electionName: string) => {
     const encodedName = encodeURIComponent(electionName);
-    router.push(`/voucher?election=${encodedName}`);
+    router.push(`/vote?election=${encodedName}`);
   };
 
   return (
@@ -270,7 +270,7 @@ function ElectionTable() {
             {filteredElections.map((election: any) => {
               const stats = getElectionStats(election);
               const isMyElection = publicKey && election.account?.admin?.equals(publicKey);
-              const canDownloadVoucher = !election.account?.isRegistrationOpen && election.account?.isVotingOpen;
+              const canVote = !election.account?.isRegistrationOpen && election.account?.isVotingOpen;
               const electionName = election.account?.name || 'Unnamed Election';
               
               return (
@@ -295,12 +295,12 @@ function ElectionTable() {
                       <Button variant="outline" size="sm">
                         <Eye className="w-4 h-4" />
                       </Button>
-                      {canDownloadVoucher && (
+                      {canVote && (
                         <Button 
-                          variant="outline" 
+                          variant="default" 
                           size="sm"
-                          className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-                          onClick={() => handleDownloadVoucher(electionName)}
+                          className="bg-green-600 hover:bg-green-700"
+                          onClick={() => handleVoteInElection(electionName)}
                         >
                           <Vote className="w-4 h-4" />
                         </Button>
@@ -323,8 +323,27 @@ function ElectionTable() {
 }
 
 function MainContent() {
-  const { elections, isLoading } = useZkVotingProgram();
+  const { elections, isLoading, refetch } = useZkVotingProgram();
   const router = useRouter();
+
+  // Refetch elections when component mounts or becomes visible
+  useEffect(() => {
+    // Refetch immediately when component mounts
+    refetch();
+
+    // Also refetch when the page becomes visible (user returns from another page)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        refetch();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [refetch]);
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-6">
@@ -346,7 +365,7 @@ function MainContent() {
 
       {/* Quick Actions */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="p-6">
+        {/* <Card className="p-6">
           <div className="flex items-center gap-4">
             <div className="p-3 rounded-lg bg-purple-100 dark:bg-purple-900">
               <Settings className="w-6 h-6 text-purple-600 dark:text-purple-400" />
@@ -362,7 +381,7 @@ function MainContent() {
               Manage
             </Button>
           </div>
-        </Card>
+        </Card> */}
         
         <Card className="p-6">
           <div className="flex items-center gap-4">
@@ -373,7 +392,9 @@ function MainContent() {
               <h3 className="font-semibold">Create Election</h3>
               <p className="text-sm text-muted-foreground">Start a new election</p>
             </div>
-            <Button variant="outline">
+            <Button variant="outline"
+            onClick={() => router.push(`/dashboard/new`)}
+            >
               Create
             </Button>
           </div>
@@ -427,7 +448,11 @@ function MainContent() {
             <p className="text-muted-foreground mb-4">
               Start by creating your first election or check your network connection.
             </p>
-            <Button>Create Election</Button>
+            <Button
+            onClick={ () => {
+               router.push(`/dashboard/new`)
+            }}
+            >Create Election</Button>
           </Card>
         )}
       </div>

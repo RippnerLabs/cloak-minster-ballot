@@ -8,11 +8,14 @@ skip-lint = false
 [programs.localnet]
 zk_voting_system = "2VfZZTtpr8Av9W2XmnJSSc3CLRVp3RLfUcds2gi2exuy"
 
+[programs.devnet]
+zk_voting_system = "2VfZZTtpr8Av9W2XmnJSSc3CLRVp3RLfUcds2gi2exuy"
+
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "./keys/signer.json"
 
 [scripts]

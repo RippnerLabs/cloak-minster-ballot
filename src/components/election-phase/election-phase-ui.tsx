@@ -124,13 +124,16 @@ function ElectionStatsCard({ election }: { election: ElectionPhase }) {
 }
 
 function PhaseControlPanel({ election }: { election: ElectionPhase }) {
-  const { closeRegistration, canTransitionPhase } = useElectionPhaseManager()
+  const { closeRegistration, concludeElection, canTransitionPhase } = useElectionPhaseManager()
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false)
+  const [isConcludeDialogOpen, setIsConcludeDialogOpen] = useState(false)
   const [isTransitioning, setIsTransitioning] = useState(false)
 
   const canCloseRegistration = canTransitionPhase(election, 'voting')
+  const canConcludeElection = canTransitionPhase(election, 'ended')
   const isRegistrationOpen = election.isRegistrationOpen
   const isVotingOpen = election.isVotingOpen
+  const isElectionEnded = !isRegistrationOpen && !isVotingOpen
 
   const handleCloseRegistration = async () => {
     setIsTransitioning(true)
@@ -140,6 +143,19 @@ function PhaseControlPanel({ election }: { election: ElectionPhase }) {
       toast.success('Phase transition completed successfully!')
     } catch (error) {
       console.error('Failed to transition phase:', error)
+    } finally {
+      setIsTransitioning(false)
+    }
+  }
+
+  const handleConcludeElection = async () => {
+    setIsTransitioning(true)
+    try {
+      await concludeElection.mutateAsync(election.name)
+      setIsConcludeDialogOpen(false)
+      toast.success('Election concluded successfully!')
+    } catch (error) {
+      console.error('Failed to conclude election:', error)
     } finally {
       setIsTransitioning(false)
     }
@@ -200,10 +216,30 @@ function PhaseControlPanel({ election }: { election: ElectionPhase }) {
               <XCircle className="w-5 h-5 text-gray-400" />
             )}
           </div>
+
+          <div className="flex items-center justify-center">
+            <ArrowRight className="w-4 h-4 text-muted-foreground" />
+          </div>
+
+          <div className="flex items-center justify-between p-3 border rounded-lg">
+            <div className="flex items-center gap-3">
+              <CheckCircle className={cn("w-5 h-5", isElectionEnded ? "text-purple-500" : "text-gray-400")} />
+              <div>
+                <p className="font-medium">Election Concluded</p>
+                <p className="text-sm text-muted-foreground">Final results are available</p>
+              </div>
+            </div>
+            {isElectionEnded ? (
+              <CheckCircle className="w-5 h-5 text-green-500" />
+            ) : (
+              <XCircle className="w-5 h-5 text-gray-400" />
+            )}
+          </div>
         </div>
 
         <Separator />
 
+        {/* Close Registration Button */}
         {canCloseRegistration && (
           <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
             <DialogTrigger asChild>
@@ -254,13 +290,72 @@ function PhaseControlPanel({ election }: { election: ElectionPhase }) {
           </Dialog>
         )}
 
-        {!canCloseRegistration && !isRegistrationOpen && (
+        {/* Conclude Election Button */}
+        {canConcludeElection && (
+          <Dialog open={isConcludeDialogOpen} onOpenChange={setIsConcludeDialogOpen}>
+            <DialogTrigger asChild>
+              <Button 
+                className="w-full bg-purple-600 hover:bg-purple-700" 
+                disabled={concludeElection.isPending}
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Conclude Election
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-yellow-500" />
+                  Conclude Election
+                </DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to conclude the election &quot;{election.name}&quot;?
+                  <br /><br />
+                  <strong>This action cannot be undone.</strong> Once concluded, no more votes can be cast and the final results will be locked in.
+                  <br /><br />
+                  Current vote count: <strong>{election.tallies.reduce((sum, tally) => sum + tally, 0)} total votes</strong>
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsConcludeDialogOpen(false)}
+                  disabled={isTransitioning}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleConcludeElection} 
+                  disabled={isTransitioning}
+                  className="bg-purple-600 hover:bg-purple-700"
+                >
+                  {isTransitioning ? (
+                    <>
+                      <Timer className="w-4 h-4 mr-2 animate-spin" />
+                      Concluding...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Conclude Election
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {/* Status Messages */}
+        {!canCloseRegistration && !canConcludeElection && (
           <Alert>
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              {isVotingOpen 
-                ? "Voting is currently open. Phase transitions cannot be reversed."
-                : "This election has ended. No further phase transitions are possible."
+              {isElectionEnded 
+                ? "This election has concluded. Final results are available and no further changes can be made."
+                : isVotingOpen 
+                ? "Voting is currently open. Use the 'Conclude Election' button to end the voting phase."
+                : "Election is in registration phase. Close registration to begin voting."
               }
             </AlertDescription>
           </Alert>

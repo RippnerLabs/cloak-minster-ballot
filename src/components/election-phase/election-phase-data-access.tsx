@@ -170,6 +170,51 @@ export function useElectionPhaseManager() {
     },
   })
 
+  // Conclude election and close voting
+  const concludeElection = useMutation({
+    mutationKey: ['conclude-election', { cluster }],
+    mutationFn: async (electionName: string) => {
+      if (!program || !provider.wallet.publicKey) {
+        throw new Error('Wallet not connected or program not initialized')
+      }
+
+      // Validate the election exists and user is admin
+      const election = await getElectionByName(electionName)
+      if (!election) {
+        throw new Error('Election not found')
+      }
+      
+      if (!election.admin.equals(provider.wallet.publicKey)) {
+        throw new Error('Only the election admin can conclude the election')
+      }
+
+      if (!election.isVotingOpen) {
+        throw new Error('Election is not in voting phase')
+      }
+
+      if (election.isRegistrationOpen) {
+        throw new Error('Cannot conclude election while registration is still open')
+      }
+
+      // Call the concludeElection method
+      return await program.methods
+        .concludeElection(Buffer.from(electionName))
+        .accounts({
+          signer: provider.wallet.publicKey,
+        })
+        .rpc()
+    },
+    onSuccess: (signature) => {
+      transactionToast(signature)
+      toast.success('Election concluded successfully!')
+      refetch()
+    },
+    onError: (error) => {
+      console.error('Failed to conclude election:', error)
+      toast.error(error.message || 'Failed to conclude election')
+    },
+  })
+
   // Check if user can manage a specific election
   const canManageElection = (election: ElectionPhase): boolean => {
     return !!publicKey && election.admin.equals(publicKey)
@@ -206,6 +251,11 @@ export function useElectionPhaseManager() {
       return true
     }
     
+    // Can transition from voting to ended
+    if (currentStatus === 'voting' && targetPhase === 'ended') {
+      return true
+    }
+    
     // Once voting starts or ends, can't go back
     return false
   }
@@ -218,6 +268,7 @@ export function useElectionPhaseManager() {
     refetch,
     getElectionByName,
     closeRegistration,
+    concludeElection,
     canManageElection,
     getElectionStatus,
     getElectionStats,

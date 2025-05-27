@@ -1,3 +1,6 @@
+import { BN } from '@coral-xyz/anchor'
+import { PublicKey } from "@solana/web3.js"
+
 export interface ZKProof {
     proof: any
     publicSignals: string[]
@@ -17,3 +20,21 @@ export interface VoucherData {
     electionName: string
     generatedAt: Date
 }
+export interface Election {
+    admin: PublicKey
+    name: string
+    isRegistrationOpen: boolean
+    isVotingConcluded: boolean
+    isVotingOpen: boolean
+    merkleRoot: number[]
+    nullifiersIpfsCid: string
+    spentTree: number[]
+    spentNullifiersIpfsCid: string
+    options: string[]
+    tallies: BN[]
+  }
+  
+  export interface ElectionWithKey extends Election {
+    publicKey: PublicKey;
+  }
+  
