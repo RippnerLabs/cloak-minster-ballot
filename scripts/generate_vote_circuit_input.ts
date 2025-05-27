@@ -1,7 +1,8 @@
 import fs from "node:fs/promises";
 import { buildPoseidon } from "circomlibjs";
 
-const DEPTH = 20;
+const DEPTH_D = 20;
+const DEPTH_S = 256;
 const poseidon = await buildPoseidon();
 const F = poseidon.F;
 const H = (l: bigint, r: bigint) => F.toObject(poseidon([l, r]));
@@ -11,15 +12,15 @@ const toDec = (x: string | bigint) => BigInt(x).toString();
  * 2. Pre-compute default nodes for an *empty* SMT                     *
  * ------------------------------------------------------------------ */
 const defaults: bigint[] = [0n];            // level 0 (leaves)
-for (let i = 1; i <= DEPTH; i++) {
+for (let i = 1; i <= DEPTH_S; i++) {
   defaults[i] = H(defaults[i - 1], defaults[i - 1]);
 }
-const EMPTY_ROOT = defaults[DEPTH];
+const EMPTY_ROOT = defaults[DEPTH_S];
 
 /* ------------------------------------------------------------------ *
  * 3. Helper: path bits from key                                       *
  * ------------------------------------------------------------------ */
-function pathBits(key: bigint, d = DEPTH) {
+function pathBits(key: bigint, d = DEPTH_S) {
   const out: number[] = [];
   for (let i = 0; i < d; i++) out.push(Number((key >> BigInt(i)) & 1n));
   return out;
@@ -45,16 +46,16 @@ const nullifierBig = BigInt(voucher.nullifier);
 
 const membershipSibs = [
   ...voucher.sibling_hashes.map(toDec),
-  ...Array(DEPTH - voucher.sibling_hashes.length).fill("0")
+  ...Array(DEPTH_D - voucher.sibling_hashes.length).fill("0")
 ];
 
 const membershipPath = [
   ...voucher.path_indices,
-  ...Array(DEPTH - voucher.path_indices.length).fill(0)
+  ...Array(DEPTH_D - voucher.path_indices.length).fill(0)
 ].map(String);
 
 // ---------- spent tree witness for the *first* vote -----------------
-const spentSibs = defaults.slice(0, DEPTH).map(toDec); // default node per level
+const spentSibs = defaults.slice(0, DEPTH_S).map(toDec); // default node per level
 const spentPath = pathBits(nullifierBig).map(String);
 
 const input = {

@@ -98,10 +98,11 @@ const vouchers = [
     }
 ]
 
+import { ChildNodes, SMT } from "@zk-kit/smt";
 import { buildPoseidon } from "circomlibjs";
 import * as snarkjs from "snarkjs";
 
-const DEPTH = 20;
+const DEPTH = 256;
 
 // Custom SMT implementation for our specific needs
 class CustomSMT {
@@ -303,11 +304,12 @@ function buildSpentTree(leaves: bigint[], poseidon: any) {
     }
     return tree;
 }
+import {poseidon3, poseidon2} from "poseidon-lite";
 
 async function main() {
     const poseidon = await buildPoseidon();
     const toDec = (x: string | bigint) => BigInt(x).toString();
-    
+    const poseidonHashFunc = (x: ChildNodes) => x.length == 2 ? poseidon2(x) : poseidon3(x)
     let leaves: bigint[] = [];
     const results: any[] = [];
 
@@ -319,17 +321,30 @@ async function main() {
         console.log(`Nullifier: ${nullifier_bigint.toString()}`);
         
         // Build spent tree with current leaves
-        const tree = buildSpentTree(leaves, poseidon);
+        // const tree = buildSpentTree(leaves, poseidon);
+        const tree = new SMT(poseidonHashFunc, true);
         
         // Check if nullifier already exists
-        if (tree.has(nullifier_bigint)) {
-            console.error(`❌ Nullifier already exists in spent tree!`);
-            break;
-        }
-        
+        // if (tree.has(nullifier_bigint)) {
+        //     console.error(`❌ Nullifier already exists in spent tree!`);
+        //     break;
+        // }
+        for (const k of leaves) tree.add(k, 1n);
+        const currRoot = tree.root;
+        // check currRoot with on chain root
         // Generate non-membership proof
-        const proof = tree.createNonMembershipProof(nullifier_bigint);
-        
+        let proof = tree.createProof(nullifier_bigint);
+        const nonMembershipProof = tree.verifyProof(proof);
+        if(proof.membership && !nonMembershipProof) {
+            return new Error(`Proof verification failed, proof.membership: ${proof.membership}, nonMembershipProof: ${nonMembershipProof}`);
+        }
+
+        tree.add(nullifier_bigint, 1n);
+        proof = tree.createProof(nullifier_bigint);
+        const membershipProof = tree.verifyProof(proof);
+        if(!proof.membership && !membershipProof) {
+            return new Error(`Proof verification failed proof: ${proof}, membershipProof: ${membershipProof}`);
+        }
         // Verify the proof
         // const isValid = tree.verifyNonMembershipProof(nullifier_bigint, proof.siblings, proof.pathBits, proof.root);
         // if (!isValid) {
@@ -344,9 +359,9 @@ async function main() {
             membership_merke_tree_siblings: [...voucher.sibling_hashes, ...Array(20 - voucher.sibling_hashes.length).fill('0')],
             membership_merke_tree_path_indices: [...voucher.path_indices, ...Array(20 - voucher.path_indices.length).fill(0)].map(String),
             
-            spent_root: toDec(proof.root),
-            spent_siblings: proof.siblings.map(s => s.toString()),
-            spent_path: proof.pathBits.map(String)
+            // spent_root: toDec(proof.root),
+            // spent_siblings: proof.siblings.map(s => s.toString()),
+            // spent_path: proof.pathBits.map(String)
         };
         
         // Generate circuit proof
@@ -360,7 +375,7 @@ async function main() {
             
             console.log(`✅ Circuit proof generated successfully for voucher ${voucherIndex}`);
             console.log(`Membership root: ${publicSignals[0]}`);
-            console.log(`New spent root: ${publicSignals[1]}`);
+            // console.log(`New spent root: ${publicSignals[1]}`);
             
             results.push({
                 voucherIndex,
@@ -368,7 +383,7 @@ async function main() {
                 proof: circuitProof,
                 publicSignals,
                 membershipRoot: publicSignals[0],
-                newSpentRoot: publicSignals[1]
+                newSpentRoot: proof.root.toString().padEnd(20, "0")
             });
             
             // Add nullifier to spent leaves for next iteration

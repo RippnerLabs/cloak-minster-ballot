@@ -14,7 +14,7 @@
     "format:check": "prettier --check .",
     "lint": "next lint",
     "start": "next start",
-    "pkg:proof_utils": "cd ./anchor/tests/proof_utils && cargo install wasm-pack && wasm-pack build --target bundler && cd -",
+    "pkg:proof_utils": "cd ./anchor/tests/proof_utils && cargo install wasm-pack && wasm-pack build --target nodejs && cd -",
     "postinstall": "patch-package"
   },
   "dependencies": {

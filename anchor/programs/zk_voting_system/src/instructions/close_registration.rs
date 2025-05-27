@@ -25,6 +25,6 @@ pub fn close_registration_handler(ctx: Context<CloseRegistration>, name: String)
 
     election.is_registration_open = false;
     election.is_voting_open = true;
-
+    election.spent_tree = [0u8; 32];
     Ok(())
 }

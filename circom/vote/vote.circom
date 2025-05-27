@@ -43,8 +43,7 @@ template SparseNonMembership(depth) {
     new_root <== curr;
 }
 
-// template Vote(depthD, depthS) {
-template Vote(depthD) {
+template Vote(depthD, depthS) {
     signal input identity_nullifier;
     signal input membership_merke_tree_siblings[depthD];
     signal input membership_merke_tree_path_indices[depthD];
@@ -74,19 +73,18 @@ template Vote(depthD) {
     membership_merkle_root <== cur[depthD];
 
     // spent leaves
-    // signal input spent_root;
-    // signal input spent_siblings[depthS];
-    // signal input spent_path[depthS];
+    signal input spent_root;
+    signal input spent_siblings[depthS];
+    signal input spent_path[depthS];
 
-    // component spent_tree = SparseNonMembership(depthS);
-    // spent_tree.key <== identity_nullifier;
-    // spent_tree.spent_path <== spent_path;
-    // spent_tree.spent_siblings <== spent_siblings; 
-    // spent_tree.curr_root <== spent_root;
+    component spent_tree = SparseNonMembership(depthS);
+    spent_tree.key <== identity_nullifier;
+    spent_tree.spent_path <== spent_path;
+    spent_tree.spent_siblings <== spent_siblings; 
+    spent_tree.curr_root <== spent_root;
 
-    // signal output new_spent_root;
-    // new_spent_root <== spent_tree.new_root;
+    signal output new_spent_root;
+    new_spent_root <== spent_tree.new_root;
 }
 
-// component main = Vote(20, 256);
-component main = Vote(20);
+component main = Vote(20, 256);

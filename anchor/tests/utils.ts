@@ -1,3 +1,6 @@
+import {ChildNodes} from "@zk-kit/smt";
+import { poseidon2, poseidon3 } from "poseidon-lite";
+
 // @ts-ignore
 export const g1Uncompressed = (curve: any, p1Raw: any) => {
     const p1 = curve.G1.fromObject(p1Raw);
@@ -222,7 +225,7 @@ export const hexToBig = (hex: string) =>
   BigInt(hex.startsWith("0x") ? hex : `0x${hex}`);
 
 export const toDec = (x: string | bigint) => BigInt(x).toString();
-
+export const posiedonHash = (x: ChildNodes) => x.length == 2 ? poseidon2(x) : poseidon3(x);
 export function buildSpentTree(leaves: bigint[], poseidon: any) {
     const tree = new CustomSMT(poseidon, DEPTH);
     for (const k of leaves) {

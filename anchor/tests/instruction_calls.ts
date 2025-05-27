@@ -2,7 +2,7 @@
 import * as ff from "ffjavascript";
 // @ts-ignore
 import * as snarkjs from "snarkjs";
-import { alphaToInt, buildSpentTree, g1Uncompressed, g2Uncompressed, hexToBig, to32ByteBuffer, toDec } from "./utils";
+import { alphaToInt, buildSpentTree, g1Uncompressed, g2Uncompressed, hexToBig, posiedonHash, to32ByteBuffer, toDec } from "./utils";
 import { convert_proof } from "./proof_utils/pkg/proof_utils";
 import { ZkVotingSystem } from "anchor/target/types/zk_voting_system";
 import { Program } from "@coral-xyz/anchor";
@@ -13,6 +13,7 @@ import { CID } from "ipfs-http-client";
 import MerkleTree from "merkletreejs";
 // @ts-ignore
 import { poseidon, buildPoseidon } from "circomlibjs"
+import {SMT, ChildNodes} from "@zk-kit/smt";
 
 export async function registerVoter(secret: Uint8Array, election_name_str: string, program: Program<ZkVotingSystem>, signer: anchor.web3.Keypair, provider: Provider, connection: anchor.web3.Connection, ipfs: any) {
     const electionIdBigInt = alphaToInt(election_name_str);
@@ -214,42 +215,66 @@ export async function performVote(voucher: any, election_name_str: string, progr
         const { depth, spentLeaves } = data;
         console.log("performVote - spentLeaves", spentLeaves);
         spent_leaves = spentLeaves
-        spent_leaves_hex = spentLeaves.map((l:string)=> Buffer.from(l.replace(/^0x/, ''), 'hex'));
+        spent_leaves_hex = spentLeaves.map((l: string) => Buffer.from(l.replace(/^0x/, ''), 'hex'));
         console.log("performVote - spent_leaves_hex", spent_leaves_hex);
         spent_leaves_bigints = spentLeaves.map(hexToBig);
     }
-    const poseidon = await buildPoseidon();
-    const spentTree = buildSpentTree(spent_leaves_bigints, poseidon);
+
+    // TODO: Move spent tree into circom circuit
+    // const poseidon = await buildPoseidon();
+    // const spentTree = buildSpentTree(spent_leaves_bigints, poseidon);
     const nullifier_bigint = BigInt(voucher.nullifier);
-    // Check if nullifier already exists
-    if (spentTree.has(nullifier_bigint)) {
-        console.error(`❌ Nullifier already exists in spent tree!`);
-        return;
+    // // Check if nullifier already exists
+    // if (spentTree.has(nullifier_bigint)) {
+    //     console.error(`❌ Nullifier already exists in spent tree!`);
+    //     return;
+    // }
+    // const smtTreeProof = spentTree.createNonMembershipProof(nullifier_bigint);
+
+    const tree = new SMT(posiedonHash, true);
+    for (const l of spent_leaves_bigints) tree.add(l, 1n);
+    const currRoot = tree.root;
+    if (currRoot.toString() == currentElection.spentTree.toString()) {
+        return new Error(`Computed Root and On Chain Root, doesnt match, currRoot: ${currRoot}, currentElection.spentTree: ${currentElection.spentTree.toString()}`)
     }
-    const smtTreeProof = spentTree.createNonMembershipProof(nullifier_bigint);
+    let proof = tree.createProof(nullifier_bigint);
+    const nonMembershipProof = tree.verifyProof(proof);
+    if(proof.membership && !nonMembershipProof) {
+        return new Error(`Proof verification failed, proof.membership: ${proof.membership}, nonMembershipProof: ${nonMembershipProof}`);
+    }
+
+    tree.add(nullifier_bigint, 1n);
+    proof = tree.createProof(nullifier_bigint);
+    const membershipProof = tree.verifyProof(proof);
+    if(!proof.membership && !membershipProof) {
+        return new Error(`Proof verification failed proof: ${proof}, membershipProof: ${membershipProof}`);
+    }
+    const new_spent_root = to32ByteBuffer(BigInt(tree.root));
 
     const circuitInputs = {
         identity_nullifier: toDec(nullifier_bigint),
         membership_merke_tree_siblings: [...voucher.sibling_hashes, ...Array(20 - voucher.sibling_hashes.length).fill('0')],
         membership_merke_tree_path_indices: [...voucher.path_indices, ...Array(20 - voucher.path_indices.length).fill(0)].map(String),
-        
-        spent_root: toDec(smtTreeProof.root),
-        spent_siblings: smtTreeProof.siblings.map(s => s.toString()),
-        spent_path: smtTreeProof.pathBits.map(String)
+
+        // spent_root: toDec(smtTreeProof.root),
+        // spent_siblings: smtTreeProof.siblings.map(s => s.toString()),
+        // spent_path: smtTreeProof.pathBits.map(String)
     };
 
     console.log("circuitInputs", JSON.stringify(circuitInputs, null, 2));
-    const { proof, publicSignals } = await snarkjs.groth16.fullProve(circuitInputs,
+    const { proof: circuitProof, publicSignals } = await snarkjs.groth16.fullProve(circuitInputs,
         "../circom/vote_js/vote.wasm",
         "../circom/vote_js/1_0000.zkey"
     );
-    // console.log("vote - proof", proof);
-    // console.log("vote - publicSignals", publicSignals);
+    console.log("vote - proof", circuitProof);
+    console.log("vote - publicSignals", publicSignals);
+
+
     const membership_merkle_root = to32ByteBuffer(BigInt(publicSignals[0]));
-    const new_spent_root = to32ByteBuffer(BigInt(publicSignals[1]));
+    // const new_spent_root = to32ByteBuffer(BigInt(publicSignals[1]));
 
     const curve = await ff.buildBn128();
-    const proofProc = await ff.utils.unstringifyBigInts(proof);
+    const proofProc = await ff.utils.unstringifyBigInts(circuitProof);
     let proofA = g1Uncompressed(curve, proofProc.pi_a);
     proofA = convert_proof(proofA);
     console.log("proofA", proofA)
@@ -260,20 +285,20 @@ export async function performVote(voucher: any, election_name_str: string, progr
 
     spent_leaves_hex.push(Buffer.from(voucher.nullifier.replace(/^0x/, ""), 'hex'));
     console.log("performVote - spent_leaves_hex", spent_leaves_hex);
-    const file = JSON.stringify({ depth: TREE_DEPTH, spentLeaves:  spent_leaves_hex.map(l => "0x" + l.toString('hex'))});
+    const file = JSON.stringify({ depth: TREE_DEPTH, spentLeaves: spent_leaves_hex.map(l => "0x" + l.toString('hex')) });
     console.log("performVote - file", file);
-    const {cid} = await ipfs.add({content: file});
+    const { cid } = await ipfs.add({ content: file });
     const ix = await program.methods.vote(Buffer.from(election_name_str), proofA, proofB, proofC, membership_merkle_root, new_spent_root, Buffer.from(cid.toString()), Buffer.from(option))
-      .accounts({
-        signer: signer.publicKey,
-      })
-      .signers([signer])
-      .instruction();
+        .accounts({
+            signer: signer.publicKey,
+        })
+        .signers([signer])
+        .instruction();
 
     const latestBlockContext = await provider.connection.getLatestBlockhash();
     const tx = new Transaction({
-      feePayer: signer.publicKey,
-      recentBlockhash: latestBlockContext.blockhash,
+        feePayer: signer.publicKey,
+        recentBlockhash: latestBlockContext.blockhash,
     });
     tx.add(ix)
     tx.sign(signer);
