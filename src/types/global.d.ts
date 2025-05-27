@@ -5,31 +5,6 @@ declare module 'bs58' {
   export function decode(string: string): Buffer;
 }
 
-declare module 'circomlibjs' {
-  export function poseidon(inputs: any[]): string;
-  export function buildPoseidon(): Promise<any>;
-}
-
-declare module 'ffjavascript' {
-  export function buildBn128(): Promise<any>;
-  export const utils: {
-    unstringifyBigInts: (obj: any) => any;
-  };
-}
-
-declare module 'snarkjs' {
-  export const groth16: {
-    fullProve: (
-      input: Record<string, any>,
-      wasmPath: string,
-      zkeyPath: string
-    ) => Promise<{
-      proof: any;
-      publicSignals: string[];
-    }>;
-  };
-}
-
 declare module '@zk-kit/smt' {
   export class SMT {
     constructor(hash: any, bitwiseAndTrue?: boolean);

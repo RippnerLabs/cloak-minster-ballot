@@ -1,7 +1,5 @@
 'use client'
 
-// @ts-ignore
-import {poseidon} from "circomlibjs";
 import { Program, AnchorProvider, utils } from '@coral-xyz/anchor'
 import { useConnection } from '@solana/wallet-adapter-react'
 import { Connection, PublicKey, Keypair } from '@solana/web3.js'
@@ -21,14 +19,37 @@ import { ZKProof } from "@/types";
 // Dynamic imports for snarkjs and other ZK dependencies
 const loadSnarkjs = async () => {
     if (typeof window === 'undefined') return null
-    const snarkjs = await import('snarkjs')
-    return snarkjs
+    try {
+        // @ts-ignore: No type declarations for this dynamic import
+        const snarkjs = (await import('snarkjs')) as any
+        return snarkjs
+    } catch (error) {
+        console.error('Failed to load snarkjs build:', error)
+        return null
+    }
 }
 
 const loadFFjavascript = async () => {
     if (typeof window === 'undefined') return null
-    const ff = await import('ffjavascript')
-    return ff
+    try {
+        // @ts-ignore: No type declarations for this dynamic import
+        const ff = (await import('ffjavascript')) as any
+        return ff
+    } catch (error) {
+        console.error('Failed to load ffjavascript build:', error)
+        return null
+    }
+}
+
+const loadCircomlibjs = async () => {
+    if (typeof window === 'undefined') return null
+    try {
+        const circomlibjs = (await import('circomlibjs')) as any
+        return circomlibjs
+    } catch (error) {
+        console.error('Failed to load circomlibjs build:', error)
+        return null
+    }
 }
 
 const loadProofUtils = async () => {
@@ -149,12 +170,13 @@ export function useRegisterVoter() {
             setIsGeneratingProof(true)
 
             try {
-                // Load snarkjs and ffjavascript
+                // Load ZK libraries
                 const snarkjs = await loadSnarkjs()
                 const ff = await loadFFjavascript()
+                const circomlibjs = await loadCircomlibjs()
                 const proofUtils = await loadProofUtils()
 
-                if (!snarkjs || !ff || !proofUtils) {
+                if (!snarkjs || !ff || !circomlibjs || !proofUtils) {
                     throw new Error('Failed to load ZK libraries')
                 }
 
@@ -271,7 +293,7 @@ export function useRegisterVoter() {
                     const response = await ipfs.get(currentElection.nullifiersIpfsCid);
                     let dataStr = "";
                     for await (const chunk of response) {
-                        if (chunk.content) {
+                        if ('content' in chunk && chunk.content) {
                             for await (const data of chunk.content) {
                                 dataStr += new TextDecoder().decode(data);
                             }
@@ -287,7 +309,14 @@ export function useRegisterVoter() {
                 const leaf = Buffer.from(event?.data.nullifier, 'hex');
                 leaves_g.push(leaf);
                 console.log("registerVoter - data - leaf", leaf);
-                const tree = new MerkleTree(leaves_g, poseidon, { hashLeaves: false, sort: true });
+                
+                // Load circomlibjs for poseidon hash
+                const circomlibjs = await loadCircomlibjs()
+                if (!circomlibjs) {
+                    throw new Error('Failed to load circomlibjs for merkle tree computation')
+                }
+                
+                const tree = new MerkleTree(leaves_g, circomlibjs.poseidon, { hashLeaves: false, sort: true });
                 const file = JSON.stringify({ depth: 20, leaves: leaves_g.map(l => "0x" + l.toString('hex')) });
                 console.log("registerVoter - data - file", file);
                 const { cid } = await ipfs.add({ content: file });
@@ -302,10 +331,10 @@ export function useRegisterVoter() {
                 })
                 .rpc();
                 currentElection = await program.account.election.fetch(electionAccountAddress)
-                if(currentElection.nullifiersIpfsCid.length !== 46) {
+                if (currentElection.nullifiersIpfsCid.length !== 46) {
                     const errMsg = 'Failed to update off chain storage ref on-chain!!';
-                    toast.success(errMsg)
-                    return new Error(errMsg)
+                    toast.error(errMsg)
+                    throw new Error(errMsg)
                 }
 
                 return signature

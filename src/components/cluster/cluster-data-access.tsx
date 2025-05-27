@@ -23,12 +23,12 @@ export enum ClusterNetwork {
 // The endpoint provided by clusterApiUrl('mainnet-beta') does not allow access from the browser due to CORS restrictions
 // To use the mainnet-beta cluster, provide a custom endpoint
 export const defaultClusters: SolanaCluster[] = [
+  { name: 'local', endpoint: 'http://localhost:8899' },
   {
     name: 'devnet',
     endpoint: clusterApiUrl('devnet'),
     network: ClusterNetwork.Devnet,
   },
-  // { name: 'local', endpoint: 'http://localhost:8899' },
   // {
   //   name: 'testnet',
   //   endpoint: clusterApiUrl('testnet'),

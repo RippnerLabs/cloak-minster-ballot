@@ -615,6 +615,7 @@ function VoteSubmissionStep({
 
 function VoteConfirmationStep({ voteResult }: { voteResult: any }) {
   const [showDetails, setShowDetails] = useState(false)
+  const router = useRouter()
 
   const copyToClipboard = async (text: string, label: string) => {
     try {
@@ -698,7 +699,7 @@ function VoteConfirmationStep({ voteResult }: { voteResult: any }) {
               </Button>
               
               <Button 
-                onClick={() => window.location.reload()}
+                onClick={() => router.push('/vote')}
                 className="flex-1"
               >
                 <Vote className="w-4 h-4 mr-2" />
@@ -953,6 +954,7 @@ function MainContent() {
 
 export default function VoteUI() {
   const { publicKey, connecting } = useWallet()
+  const router = useRouter()
 
   if(connecting) {
     return (

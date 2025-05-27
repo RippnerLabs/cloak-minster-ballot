@@ -20,3 +20,15 @@ ipfs config --json API.HTTPHeaders.Access-Control-Allow-Headers \
 
 1/ update the @dashboard-ui.tsx to go to /voucher for a particular election and where the input can paste the secret in hex
 2/ /voucher @voucher.ui.tsx should take the url param to facilite downloading a voucher for one election at a time
+
+ipfs config --json API.HTTPHeaders.Access-Control-Allow-Origin \
+  '["http://localhost:3000"]'
+
+➜  anchor git:(main) ✗ ipfs config --json API.HTTPHeaders.Access-Control-Allow-Methods \
+  '["GET","POST","PUT","OPTIONS"]'
+
+➜  anchor git:(main) ✗ ipfs config --json API.HTTPHeaders.Access-Control-Allow-Credentials '["true"]'
+ipfs config --json API.HTTPHeaders.Access-Control-Allow-Headers \
+  '["Content-Type","Authorization"]'
+
+➜  anchor git:(main) ✗ ipfs daemon

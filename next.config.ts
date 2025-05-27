@@ -32,8 +32,25 @@ const nextConfig: NextConfig = {
           { key: "Access-Control-Allow-Methods", value: "GET,OPTIONS,PATCH,DELETE,POST,PUT" },
           { key: "Access-Control-Allow-Headers", value: "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version" },
         ]
+      },
+      {
+        source: "/api/ipfs/:path*",
+        headers: [
+          { key: "Access-Control-Allow-Credentials", value: "true" },
+          { key: "Access-Control-Allow-Origin", value: "*" },
+          { key: "Access-Control-Allow-Methods", value: "GET,OPTIONS,PATCH,DELETE,POST,PUT" },
+          { key: "Access-Control-Allow-Headers", value: "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version" },
+        ]
       }
     ]
+  },
+  async rewrites() {
+    return [
+      {
+        source: "/api/ipfs/:path*",
+        destination: "https://ipfs.rippner.com/api/v0/:path*",
+      },
+    ];
   },
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
     // Add WASM support
@@ -52,11 +69,11 @@ const nextConfig: NextConfig = {
     // Add better handling for problematic modules
     config.externals = config.externals || [];
     if (!isServer) {
-      config.externals.push({
-        'circomlibjs': 'circomlibjs',
-        'ffjavascript': 'ffjavascript',
-        'snarkjs': 'snarkjs',
-      });
+      // config.externals.push({
+      //   'circomlibjs': 'circomlibjs',
+      //   'ffjavascript': 'ffjavascript',
+      //   'snarkjs': 'snarkjs',
+      // });
     }
 
     // Provide TextDecoder and TextEncoder for WASM modules
