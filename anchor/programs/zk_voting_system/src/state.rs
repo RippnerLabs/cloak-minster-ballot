@@ -8,6 +8,7 @@ pub struct Election {
     pub name: String,
     pub is_registration_open: bool,
     pub is_voting_open: bool,
+    pub is_voting_concluded: bool,
     // registered voters MT
     pub merkle_root: [u8; 32],
     #[max_len(59)] // should be 46

@@ -32,6 +32,7 @@ pub mod zk_voting_system {
         return vote_handler(ctx,name, proof_a, proof_b, proof_c, merkle_rootmembership_merkle_root, new_spent_root, spent_nullifiers_ipfs_cid, option);
     }
 
-    // TODO: close votings
-    // 
+    pub fn conclude_election(ctx: Context<ConcludeElection>, name: String) -> Result<()> {
+        return conclude_election_handler(ctx, name)
+    }
 }

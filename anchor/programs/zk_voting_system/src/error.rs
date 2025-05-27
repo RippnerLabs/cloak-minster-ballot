@@ -13,4 +13,10 @@ pub enum ErrorCode {
 
     #[msg("Voting for non-existent option")]
     NonExistentOption,
+
+    #[msg("Election is not in voting phase")]
+    NoVotingPhase,
+
+    #[msg("Election is not in registration phase")]
+    NoRegistrationPhase,
 }

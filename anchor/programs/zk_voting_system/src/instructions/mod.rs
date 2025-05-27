@@ -8,3 +8,5 @@ pub use close_registration::*;
 pub mod close_registration;
 pub use vote::*;
 pub mod vote;
+pub use conclude_election::*;
+pub mod conclude_election;

@@ -69,6 +69,61 @@ export type ZkVotingSystem = {
       ]
     },
     {
+      "name": "concludeElection",
+      "discriminator": [
+        194,
+        16,
+        131,
+        115,
+        20,
+        203,
+        83,
+        132
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "election",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  108,
+                  101,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": "string"
+        }
+      ]
+    },
+    {
       "name": "initElection",
       "discriminator": [
         216,
@@ -537,6 +592,16 @@ export type ZkVotingSystem = {
       "code": 6003,
       "name": "nonExistentOption",
       "msg": "Voting for non-existent option"
+    },
+    {
+      "code": 6004,
+      "name": "noVotingPhase",
+      "msg": "Election is not in voting phase"
+    },
+    {
+      "code": 6005,
+      "name": "noRegistrationPhase",
+      "msg": "Election is not in registration phase"
     }
   ],
   "types": [
@@ -559,6 +624,10 @@ export type ZkVotingSystem = {
           },
           {
             "name": "isVotingOpen",
+            "type": "bool"
+          },
+          {
+            "name": "isVotingConcluded",
             "type": "bool"
           },
           {

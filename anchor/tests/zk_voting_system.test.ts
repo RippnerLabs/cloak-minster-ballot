@@ -140,5 +140,13 @@ describe('zk-voting-system', () => {
     expect(1).toEqual(1);
   }, 300000)
 
+  it("Conclude election", async () => {
+    await program.methods.concludeElection(Buffer.from(election_name_str))
+    .accounts({
+      signer: signer.publicKey
+    })
+    .rpc();
+  })
+
 
 }, 50000000)

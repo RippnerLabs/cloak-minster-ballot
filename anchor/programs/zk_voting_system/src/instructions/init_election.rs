@@ -25,6 +25,7 @@ pub fn init_election_handler(ctx: Context<InitElection>, name: String, options: 
      election.name = name;
     election.is_registration_open = true;
     election.is_voting_open = false;
+    election.is_voting_concluded = false;
     election.nullifiers_ipfs_cid = String::new();
     election.spent_nullifiers_ipfs_cid = String::new();
     election.options = options;
