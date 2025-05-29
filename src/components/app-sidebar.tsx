@@ -120,19 +120,19 @@ const data = {
       items: [
         {
           title: "How to Vote",
-          url: "/docs/voting",
+          url: "/docs",
         },
         {
           title: "ZK Proofs",
-          url: "/docs/zk-proofs",
+          url: "/docs",
         },
         {
           title: "Privacy",
-          url: "/docs/privacy",
+          url: "/docs",
         },
         {
           title: "FAQ",
-          url: "/docs/faq",
+          url: "/docs",
         },
       ],
     },

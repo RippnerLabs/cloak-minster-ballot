@@ -48,3 +48,6 @@ next-env.d.ts
 /anchor/target/test-ledger
 /anchor/target/.rustc_info.json
 docs/
+test-ledger
+test-ledger/*
+certificates

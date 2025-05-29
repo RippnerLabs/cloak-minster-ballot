@@ -198,6 +198,7 @@ export function useElectionPhaseManager() {
 
       // Call the concludeElection method
       return await program.methods
+        // @ts-ignore
         .concludeElection(Buffer.from(electionName))
         .accounts({
           signer: provider.wallet.publicKey,

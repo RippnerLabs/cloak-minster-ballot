@@ -15,6 +15,7 @@ import { BackgroundGradient } from '@/components/ui/background-gradient'
 import { Spotlight } from '@/components/ui/spotlight'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { WalletButton } from '../solana/solana-provider'
+import { useRouter } from 'next/navigation'
 import { 
   Settings,
   Clock,
@@ -128,6 +129,7 @@ function PhaseControlPanel({ election }: { election: ElectionPhase }) {
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false)
   const [isConcludeDialogOpen, setIsConcludeDialogOpen] = useState(false)
   const [isTransitioning, setIsTransitioning] = useState(false)
+  const router = useRouter()
 
   const canCloseRegistration = canTransitionPhase(election, 'voting')
   const canConcludeElection = canTransitionPhase(election, 'ended')
@@ -141,6 +143,7 @@ function PhaseControlPanel({ election }: { election: ElectionPhase }) {
       await closeRegistration.mutateAsync(election.name)
       setIsConfirmDialogOpen(false)
       toast.success('Phase transition completed successfully!')
+      router.push(`/voucher?election=${encodeURIComponent(election.name)}`)
     } catch (error) {
       console.error('Failed to transition phase:', error)
     } finally {
@@ -153,7 +156,6 @@ function PhaseControlPanel({ election }: { election: ElectionPhase }) {
     try {
       await concludeElection.mutateAsync(election.name)
       setIsConcludeDialogOpen(false)
-      toast.success('Election concluded successfully!')
     } catch (error) {
       console.error('Failed to conclude election:', error)
     } finally {

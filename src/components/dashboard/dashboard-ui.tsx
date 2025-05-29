@@ -22,9 +22,11 @@ import {
   BarChart3,
   Crown,
   Zap,
+  Download,
   MoreHorizontal,
   Eye,
-  Settings
+  Settings,
+  UserCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTransactionToast } from '@/components/use-transaction-toast';
@@ -58,6 +60,7 @@ function ElectionCard({ election }: { election: any }) {
   const stats = getElectionStats(election);
   
   const canVote = !election.account?.isRegistrationOpen && election.account?.isVotingOpen;
+  const canVoucher = canVote;
   const electionName = election.account?.name || 'Unnamed Election';
   
   const handleVoteInElection = () => {
@@ -98,10 +101,26 @@ function ElectionCard({ election }: { election: any }) {
         )}
         
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="flex-1">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="flex-1"
+            onClick={() => router.push(`/dashboard/election/${encodeURIComponent(electionName)}`)}
+          >
             <Eye className="w-4 h-4 mr-1" />
             View
           </Button>
+          {canVoucher && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex-1"
+              onClick={() => router.push(`/voucher?election=${encodeURIComponent(electionName)}`)}
+            >
+              <Download className="w-4 h-4 mr-1" />
+              Voucher
+            </Button>
+          )}
           {canVote ? (
             <Button 
               variant="default" 
@@ -113,8 +132,25 @@ function ElectionCard({ election }: { election: any }) {
               Vote Now
             </Button>
           ) : (
-            <Button variant="outline" size="sm" className="flex-1" disabled>
-              <MoreHorizontal className="w-4 h-4" />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex-1" 
+              disabled={!election.account?.isRegistrationOpen}
+              onClick={() => {
+                if (election.account?.isRegistrationOpen) {
+                  router.push(`/register?election=${encodeURIComponent(electionName)}`);
+                }
+              }}
+            >
+              {election.account?.isRegistrationOpen ? (
+                <>
+                  <UserCheck className="w-4 h-4 mr-1" />
+                  Register
+                </>
+              ) : (
+                <MoreHorizontal className="w-4 h-4" />
+              )}
             </Button>
           )}
         </div>
@@ -271,6 +307,7 @@ function ElectionTable() {
               const stats = getElectionStats(election);
               const isMyElection = publicKey && election.account?.admin?.equals(publicKey);
               const canVote = !election.account?.isRegistrationOpen && election.account?.isVotingOpen;
+              const canVoucher = canVote;
               const electionName = election.account?.name || 'Unnamed Election';
               
               return (
@@ -292,17 +329,54 @@ function ElectionTable() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
-                        <Eye className="w-4 h-4" />
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={() => router.push(`/dashboard/election/${encodeURIComponent(electionName)}`)}
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
+                        View
                       </Button>
-                      {canVote && (
+                      {canVoucher && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex-1"
+                          onClick={() => router.push(`/voucher?election=${encodeURIComponent(electionName)}`)}
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
+                      )}
+                      {canVote ? (
                         <Button 
                           variant="default" 
-                          size="sm"
+                          size="sm" 
                           className="bg-green-600 hover:bg-green-700"
                           onClick={() => handleVoteInElection(electionName)}
                         >
                           <Vote className="w-4 h-4" />
+                        </Button>
+                      ) : (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex-1" 
+                          disabled={!election.account?.isRegistrationOpen}
+                          onClick={() => {
+                            if (election.account?.isRegistrationOpen) {
+                              router.push(`/register?election=${encodeURIComponent(electionName)}`);
+                            }
+                          }}
+                        >
+                          {election.account?.isRegistrationOpen ? (
+                            <>
+                              <UserCheck className="w-4 h-4 mr-1" />
+                              Register
+                            </>
+                          ) : (
+                            <MoreHorizontal className="w-4 h-4" />
+                          )}
                         </Button>
                       )}
                     </div>
@@ -365,7 +439,8 @@ function MainContent() {
 
       {/* Quick Actions */}
       <div className="grid gap-4 md:grid-cols-3">
-        {/* <Card className="p-6">
+        {/* Phase Management Card */}
+        <Card className="p-6">
           <div className="flex items-center gap-4">
             <div className="p-3 rounded-lg bg-purple-100 dark:bg-purple-900">
               <Settings className="w-6 h-6 text-purple-600 dark:text-purple-400" />
@@ -381,7 +456,7 @@ function MainContent() {
               Manage
             </Button>
           </div>
-        </Card> */}
+        </Card>
         
         <Card className="p-6">
           <div className="flex items-center gap-4">
@@ -392,8 +467,9 @@ function MainContent() {
               <h3 className="font-semibold">Create Election</h3>
               <p className="text-sm text-muted-foreground">Start a new election</p>
             </div>
-            <Button variant="outline"
-            onClick={() => router.push(`/dashboard/new`)}
+            <Button 
+              variant="outline"
+              onClick={() => router.push('/dashboard/new')}
             >
               Create
             </Button>
@@ -409,7 +485,10 @@ function MainContent() {
               <h3 className="font-semibold">View Results</h3>
               <p className="text-sm text-muted-foreground">Analyze election results</p>
             </div>
-            <Button variant="outline">
+            <Button 
+              variant="outline"
+              onClick={() => router.push('/dashboard/results')}
+            >
               Analyze
             </Button>
           </div>
@@ -423,7 +502,11 @@ function MainContent() {
             <Activity className="w-6 h-6" />
             Recent Elections
           </h2>
-          <Button variant="outline" size="sm">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => router.push('/dashboard/elections')}
+          >
             <Eye className="w-4 h-4 mr-2" />
             View All
           </Button>
@@ -449,8 +532,8 @@ function MainContent() {
               Start by creating your first election or check your network connection.
             </p>
             <Button
-            onClick={ () => {
-               router.push(`/dashboard/new`)
+            onClick={() => {
+               router.push('/dashboard/new')
             }}
             >Create Election</Button>
           </Card>

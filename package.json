@@ -6,7 +6,7 @@
     "anchor": "cd anchor && anchor",
     "anchor-build": "cd anchor && anchor build",
     "anchor-localnet": "cd anchor && anchor localnet",
-    "anchor-test": "cd anchor && anchor test",
+    "anchor-test": "yarn run pkg:proof_utils-nodejs && cd anchor && anchor test && cd -",
     "build": "next build",
     "ci": "npm run build && npm run lint && npm run format:check",
     "dev": "next dev",
@@ -14,7 +14,8 @@
     "format:check": "prettier --check .",
     "lint": "next lint",
     "start": "next start",
-    "pkg:proof_utils": "cd ./anchor/tests/proof_utils && cargo install wasm-pack && wasm-pack build --target nodejs && cd -",
+    "pkg:proof_utils-nodejs": "cd ./anchor/tests/proof_utils && cargo install wasm-pack && wasm-pack build --target nodejs && cd -",
+    "pkg:proof_utils-bundler": "cd ./anchor/tests/proof_utils && cargo install wasm-pack && wasm-pack build --target bundler && cd -",
     "postinstall": "patch-package"
   },
   "dependencies": {
