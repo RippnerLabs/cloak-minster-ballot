@@ -75,22 +75,6 @@ const loadProofUtils = async () => {
             return proofUtils
         } catch (directError) {
             console.log('Direct import failed, trying alternative method:', directError)
-            
-            // Alternative: Load via fetch for browser compatibility
-            // @ts-ignore
-            const wasmJs = await import('/pkg/proof_utils.js')
-            
-            // Fetch and load the WASM binary
-            const response = await fetch('/pkg/proof_utils_bg.wasm')
-            const bytes = await response.arrayBuffer()
-            
-            // Initialize the WASM module
-            const wasmModule = await WebAssembly.instantiate(bytes)
-            
-            // Set up the WASM module
-            wasmJs.__wbg_set_wasm(wasmModule.instance.exports)
-            
-            return wasmJs
         }
     } catch (error) {
         console.error('Failed to load proof utils:', error)

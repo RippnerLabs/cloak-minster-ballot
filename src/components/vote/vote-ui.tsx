@@ -786,7 +786,7 @@ function VotingWizard() {
       {/* Election Info Banner (if pre-selected) */}
       {preSelectedElection && (
         <Card className="border-green-200 bg-green-50 dark:bg-green-950">
-          <CardContent className="pt-6">
+          <CardContent className="">
             <div className="flex items-center gap-4">
               <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900">
                 <Vote className="w-6 h-6 text-green-600 dark:text-green-400" />

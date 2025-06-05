@@ -1,22 +1,13 @@
-import React from 'react'
+import { Metadata } from 'next'
+import ElectionViewUI from '@/components/election-view/election-view-ui'
 
-interface ElectionDetailPageProps {
-  params: {
-    name: string
-  }
+export const metadata: Metadata = {
+  title: 'Election Details - ZK Voting System',
+  description: 'View detailed information about a specific election including status, options, and results.',
 }
 
-export default function ElectionDetailPage({ params }: ElectionDetailPageProps) {
-  const electionName = decodeURIComponent(params.name)
-  
+export default function ElectionDetailPage() {
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Election Details: {electionName}</h1>
-      <p className="text-muted-foreground">Detailed information about the {electionName} election.</p>
-      {/* This will redirect to dashboard for now */}
-      <script>
-        window.location.href = '/dashboard'
-      </script>
-    </div>
+    <ElectionViewUI />
   )
 } 

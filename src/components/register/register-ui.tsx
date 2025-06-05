@@ -219,7 +219,7 @@ function MainContent() {
         <Form {...form}>
           <div className="space-y-6">
             <Card>
-              <CardContent className="pt-6">
+              <CardContent className="">
                 {/* Step 1: Wallet & Election Selection */}
                 {currentStep === 1 && (
                   <div className="space-y-6">
