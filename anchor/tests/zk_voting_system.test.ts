@@ -7,6 +7,24 @@ import { MerkleTree } from "merkletreejs";
 import { poseidon } from "circomlibjs";
 import { create } from 'ipfs-http-client';
 import { downloadVoucher, performVote, registerVoter } from "./instruction_calls";
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+
+// Load environment variables from .env.local
+dotenv.config({ path: path.join(__dirname, '../../.env.local') });
+
+// Import Jest globals for TypeScript
+declare global {
+  function describe(name: string, fn: () => void): void;
+  function it(name: string, fn: () => void | Promise<void>, timeout?: number): void;
+  function beforeAll(fn: () => void | Promise<void>, timeout?: number): void;
+  namespace jest {
+    interface Matchers<R> {
+      toEqual(expected: any): R;
+    }
+  }
+  function expect<T = any>(actual: T): jest.Matchers<T>;
+}
 
 describe('zk-voting-system', () => {
   let signer: Keypair;
@@ -18,14 +36,21 @@ describe('zk-voting-system', () => {
   let connection: Connection;
   let wallet: anchor.Wallet;
   let ipfs: any;
-  const ipfsEndpoint: string = "https://ipfs.rippner.com/api/v0";
+  
+  // Use environment variables with fallbacks
+  const solanaEndpoint: string = process.env.NEXT_PUBLIC_SOLANA_ENDPOINT || "http://127.0.0.1:8899";
+  const ipfsEndpoint: string = process.env.NEXT_PUBLIC_IPFS_URL || "http://localhost:5001/api/v0";
+  
   const election_name_str = "new election";
   const options = ["option1", "option2", "opt3"];
   let users: Keypair[] = [];
   let vouchers = [];
 
   beforeAll(async () => {
-    connection = new Connection("http://127.0.0.1:8899", "confirmed");
+    console.log(`Using Solana endpoint: ${solanaEndpoint}`);
+    console.log(`Using IPFS endpoint: ${ipfsEndpoint}`);
+    
+    connection = new Connection(solanaEndpoint, "confirmed");
 
     wallet = anchor.Wallet.local();
     provider = new anchor.AnchorProvider(connection, wallet, {
@@ -57,7 +82,7 @@ describe('zk-voting-system', () => {
 
   it('Initialize Election', async () => {
     await program.methods
-      .initElection(election_name, options)
+      .initElection(election_name_str, options)
       .accounts({
         signer: signer.publicKey,
       })
@@ -65,7 +90,7 @@ describe('zk-voting-system', () => {
       .rpc()
 
     const [electionAccountAddress] = PublicKey.findProgramAddressSync(
-      [Buffer.from("election"), election_name],
+      [Buffer.from("election"), Buffer.from(election_name_str)],
       program.programId
     )
     const currentElection = await program.account.election.fetch(electionAccountAddress)
@@ -98,7 +123,7 @@ describe('zk-voting-system', () => {
   })
 
   it("Close Registration & Open voting", async () => {
-    await program.methods.closeRegistration(election_name)
+    await program.methods.closeRegistration(election_name_str)
       .accounts({
         signer: wallet.payer.publicKey,
       })
@@ -106,7 +131,7 @@ describe('zk-voting-system', () => {
       .rpc();
 
     const [electionAccountAddr] = PublicKey.findProgramAddressSync(
-      [Buffer.from("election"), election_name],
+      [Buffer.from("election"), Buffer.from(election_name_str)],
       program.programId
     );
     const electionAccount = await program.account.election.fetch(electionAccountAddr);
@@ -124,7 +149,7 @@ describe('zk-voting-system', () => {
   }, 300000)
 
   it("Conclude election", async () => {
-    await program.methods.concludeElection(Buffer.from(election_name_str))
+    await program.methods.concludeElection(election_name_str)
     .accounts({
       signer: signer.publicKey
     })
@@ -132,4 +157,4 @@ describe('zk-voting-system', () => {
   })
 
 
-}, 50000000)
+})
