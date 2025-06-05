@@ -1,5 +1,5 @@
 {
-  "name": "legacy-next-tailwind-counter",
+  "name": "solana-zk-voting-platform",
   "version": "0.0.0",
   "private": true,
   "scripts": {
@@ -9,7 +9,7 @@
     "anchor-test": "yarn run pkg:proof_utils-nodejs && cd anchor && anchor test && cd -",
     "build": "next build",
     "ci": "npm run build && npm run lint && npm run format:check",
-    "dev": "next dev",
+    "dev": "yarn run pkg:proof_utils-bundler && yarn install && next dev",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "next lint",
@@ -22,6 +22,7 @@
     "@babel/core": "^7.27.1",
     "@coral-xyz/anchor": "^0.31.1",
     "@hookform/resolvers": "^5.0.1",
+    "@jayanth-kumar-morem/indexed-merkle-tree": "file:/Users/jayanthkumar/Downloads/work/indexed-merkle-tree/",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-collapsible": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.14",
@@ -41,6 +42,7 @@
     "@tanstack/react-query": "^5.77.0",
     "@types/bs58": "^5.0.0",
     "@wasm-tool/wasm-pack-plugin": "^1.7.0",
+    "@zk-kit/imt": "^2.0.0-beta.8",
     "@zk-kit/smt": "^1.0.2",
     "@zk-kit/sparse-merkle-tree": "^0.2.0",
     "anchor-bankrun": "^0.5.0",
@@ -75,6 +77,8 @@
     "zod": "^3.25.28"
   },
   "devDependencies": {
+    "@babel/plugin-transform-runtime": "^7.27.4",
+    "@babel/preset-env": "^7.27.2",
     "@eslint/eslintrc": "^3.3.1",
     "@tailwindcss/postcss": "^4.1.4",
     "@types/bn.js": "^5.1.6",
@@ -82,14 +86,26 @@
     "@types/node": "^22.15.21",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
+    "assert": "^2.1.0",
+    "babel-loader": "^10.0.0",
+    "browserify-zlib": "^0.2.0",
+    "buffer": "^6.0.3",
+    "crypto-browserify": "^3.12.1",
     "eslint": "^9.25.1",
     "eslint-config-next": "15.3.1",
+    "https-browserify": "^1.0.0",
     "jest": "^29.7.0",
     "patch-package": "^8.0.0",
+    "path-browserify": "^1.0.1",
     "prettier": "^3.5.3",
+    "stream-browserify": "^3.0.0",
+    "stream-http": "^3.2.0",
     "tailwindcss": "^4.1.4",
     "text-encoder": "^0.0.4",
+    "text-encoding": "^0.7.0",
     "ts-jest": "^29.3.4",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "url": "^0.11.4",
+    "util": "^0.12.5"
   }
 }

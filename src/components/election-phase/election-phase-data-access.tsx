@@ -11,9 +11,7 @@ import { useTransactionToast } from '../use-transaction-toast'
 import { toast } from 'sonner'
 import IDL from '../../../anchor/target/idl/zk_voting_system.json'
 import type { ZkVotingSystem } from '../../../anchor/target/types/zk_voting_system'
-
-// Program ID for ZK Voting System
-const ZK_VOTING_PROGRAM_ID = new PublicKey('2VfZZTtpr8Av9W2XmnJSSc3CLRVp3RLfUcds2gi2exuy')
+import { ZK_VOTING_PROGRAM_ID } from '../../lib/constants'
 
 // Helper function to get the program instance
 export function getZkVotingProgram(connection: Connection) {

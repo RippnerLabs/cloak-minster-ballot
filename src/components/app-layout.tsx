@@ -27,7 +27,7 @@ export function AppLayout({
         </main>
         <AppFooter />
       </div>
-      <Toaster />
+      <Toaster position='top-right' />
     </ThemeProvider>
   )
 }

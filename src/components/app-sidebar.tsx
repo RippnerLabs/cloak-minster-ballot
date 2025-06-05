@@ -44,26 +44,6 @@ const data = {
   ],
   navMain: [
     {
-      title: "Elections",
-      url: "/",
-      icon: Home,
-      isActive: true,
-      items: [
-        {
-          title: "Current Election",
-          url: "/",
-        },
-        {
-          title: "Register to Vote",
-          url: "/register",
-        },
-        {
-          title: "Cast Vote",
-          url: "/vote",
-        },
-      ],
-    },
-    {
       title: "Dashboard",
       url: "/dashboard",
       icon: LayoutDashboard,
@@ -87,6 +67,26 @@ const data = {
         {
           title: "Results",
           url: "/dashboard/results",
+        },
+      ],
+    },
+    {
+      title: "Elections",
+      url: "/",
+      icon: Home,
+      isActive: true,
+      items: [
+        {
+          title: "Current Election",
+          url: "/",
+        },
+        {
+          title: "Register to Vote",
+          url: "/register",
+        },
+        {
+          title: "Cast Vote",
+          url: "/vote",
         },
       ],
     },
@@ -167,7 +167,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavProjects projects={data.projects} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

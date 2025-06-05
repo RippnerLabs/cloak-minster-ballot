@@ -98,7 +98,7 @@ const vouchers = [
     }
 ]
 
-import { ChildNodes, SMT } from "@zk-kit/smt";
+import { ChildNodes, IMT } from "@zk-kit/imt";
 import { buildPoseidon } from "circomlibjs";
 import * as snarkjs from "snarkjs";
 
@@ -297,6 +297,7 @@ class CustomSMT {
     }
 }
 
+const poseidonHashFunc = (x: ChildNodes) => x.length == 2 ? poseidon2(x) : poseidon3(x)
 function buildSpentTree(leaves: bigint[], poseidon: any) {
     const tree = new CustomSMT(poseidon, DEPTH);
     for (const k of leaves) {
@@ -305,11 +306,11 @@ function buildSpentTree(leaves: bigint[], poseidon: any) {
     return tree;
 }
 import {poseidon3, poseidon2} from "poseidon-lite";
+import { IndexedMerkleTree } from "@jayanth-kumar-morem/indexed-merkle-tree";
 
 async function main() {
     const poseidon = await buildPoseidon();
     const toDec = (x: string | bigint) => BigInt(x).toString();
-    const poseidonHashFunc = (x: ChildNodes) => x.length == 2 ? poseidon2(x) : poseidon3(x)
     let leaves: bigint[] = [];
     const results: any[] = [];
 
@@ -319,32 +320,41 @@ async function main() {
         
         const nullifier_bigint = BigInt(voucher.nullifier);
         console.log(`Nullifier: ${nullifier_bigint.toString()}`);
-        
+        const imt = new IndexedMerkleTree(poseidon);
+        imt.insert(BigInt(voucher.sibling_hashes[0]));
+        imt.insert(BigInt(voucher.sibling_hashes[1]));
+        const proof = imt.createNonMembershipProof(nullifier_bigint);
+
         // Build spent tree with current leaves
         // const tree = buildSpentTree(leaves, poseidon);
-        const tree = new SMT(poseidonHashFunc, true);
+        // const tree = new IMT(poseidon2, 32, BigInt(0), 2);
         
         // Check if nullifier already exists
         // if (tree.has(nullifier_bigint)) {
         //     console.error(`❌ Nullifier already exists in spent tree!`);
         //     break;
         // }
-        for (const k of leaves) tree.add(k, 1n);
-        const currRoot = tree.root;
-        // check currRoot with on chain root
-        // Generate non-membership proof
-        let proof = tree.createProof(nullifier_bigint);
-        const nonMembershipProof = tree.verifyProof(proof);
-        if(proof.membership && !nonMembershipProof) {
-            return new Error(`Proof verification failed, proof.membership: ${proof.membership}, nonMembershipProof: ${nonMembershipProof}`);
-        }
+        // for (const k of leaves) tree.insert(k);
+        // const currRoot = tree.root;
+        // console.log("currRoot", currRoot);
+        // // check currRoot with on chain root   
+        // // Generate non-membership proof
+        // let proof = tree.createProof(nullifier_bigint);
+        // const nonMembershipProof = tree.verifyProof(proof);
+        // console.log("proof", proof);
+        // console.log("nonMembershipProof", nonMembershipProof);
+        // if(proof.membership && !nonMembershipProof) {
+        //     return new Error(`Proof verification failed, proof.membership: ${proof.membership}, nonMembershipProof: ${nonMembershipProof}`);
+        // }
 
-        tree.add(nullifier_bigint, 1n);
-        proof = tree.createProof(nullifier_bigint);
-        const membershipProof = tree.verifyProof(proof);
-        if(!proof.membership && !membershipProof) {
-            return new Error(`Proof verification failed proof: ${proof}, membershipProof: ${membershipProof}`);
-        }
+        // tree.insert(nullifier_bigint);
+        // proof = tree.createProof(nullifier_bigint);
+        // console.log("proof", proof);
+        // const membershipProof = tree.verifyProof(proof);
+        // console.log("membershipProof", membershipProof);
+        // if(!proof.membership && !membershipProof) {
+        //     return new Error(`Proof verification failed proof: ${proof}, membershipProof: ${membershipProof}`);
+        // }
         // Verify the proof
         // const isValid = tree.verifyNonMembershipProof(nullifier_bigint, proof.siblings, proof.pathBits, proof.root);
         // if (!isValid) {
@@ -352,30 +362,38 @@ async function main() {
         //     console.log(`Debug: Expected root ${proof.root}, tree has ${leaves.length} leaves`);
         //     // Continue anyway to see if circuit handles it
         // }
-        
+        console.log("proof", proof);
         // Prepare circuit inputs
         const input = {
             identity_nullifier: toDec(nullifier_bigint),
             membership_merke_tree_siblings: [...voucher.sibling_hashes, ...Array(20 - voucher.sibling_hashes.length).fill('0')],
             membership_merke_tree_path_indices: [...voucher.path_indices, ...Array(20 - voucher.path_indices.length).fill(0)].map(String),
-            
+
+            imt_query:proof.query,
+            imt_pre_val: proof.preLeaf.val,
+            imt_pre_next: proof.preLeaf.nextVal,
+            imt_path: proof.path,
+            imt_dirs: proof.directions,
+            imt_root_pub: proof.root
             // spent_root: toDec(proof.root),
-            // spent_siblings: proof.siblings.map(s => s.toString()),
-            // spent_path: proof.pathBits.map(String)
+            // spent_siblings: [...proof.siblings.map(s => s.toString()), ...Array(256 - proof.siblings.length).fill(0)].map(String),
+            // spent_path: nullifier_bigint.toString(2).padStart(256, "0").split("").reverse().map(String)
         };
+        console.log(input);
         
         // Generate circuit proof
         try {
             console.log(`🔄 Generating proof for voucher ${voucherIndex}...`);
+            console.log('Circuit input:', JSON.stringify(input, null, 2));
             const { proof: circuitProof, publicSignals } = await snarkjs.groth16.fullProve(
                 input,
                 "./circom/vote_js/vote.wasm",
-                "./circom/vote_js/1_0000.zkey"
+                "./circom/1_0000.zkey"
             );
             
             console.log(`✅ Circuit proof generated successfully for voucher ${voucherIndex}`);
             console.log(`Membership root: ${publicSignals[0]}`);
-            // console.log(`New spent root: ${publicSignals[1]}`);
+            console.log(`New spent root: ${publicSignals[1]}`);
             
             results.push({
                 voucherIndex,

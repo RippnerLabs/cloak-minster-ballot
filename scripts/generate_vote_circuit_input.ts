@@ -1,76 +1,90 @@
 import fs from "node:fs/promises";
-import { buildPoseidon } from "circomlibjs";
+import {
+  IndexedMerkleTree,
+  NonMembershipProof
+} from "@jayanth-kumar-morem/indexed-merkle-tree";
 
-const DEPTH_D = 20;
-const DEPTH_S = 256;
-const poseidon = await buildPoseidon();
-const F = poseidon.F;
-const H = (l: bigint, r: bigint) => F.toObject(poseidon([l, r]));
-const toDec = (x: string | bigint) => BigInt(x).toString();
+// /* ------------------------------------------------------------------ *
+//  * 1.  Parameters & helpers                                           *
+//  * ------------------------------------------------------------------ */
+const DEPTH_D = 20;                 // depth of membership tree
+const DEPTH_I = 32;                 // depth of Indexed-Merkle-Tree
 
-/* ------------------------------------------------------------------ *
- * 2. Pre-compute default nodes for an *empty* SMT                     *
- * ------------------------------------------------------------------ */
-const defaults: bigint[] = [0n];            // level 0 (leaves)
-for (let i = 1; i <= DEPTH_S; i++) {
-  defaults[i] = H(defaults[i - 1], defaults[i - 1]);
-}
-const EMPTY_ROOT = defaults[DEPTH_S];
+const toDec   = (x: bigint | string) => BigInt(x).toString();
+const pad     = <T>(arr: T[], len: number, fill: T) =>
+  arr.length >= len ? arr : [...arr, ...Array(len - arr.length).fill(fill)];
 
 /* ------------------------------------------------------------------ *
- * 3. Helper: path bits from key                                       *
- * ------------------------------------------------------------------ */
-function pathBits(key: bigint, d = DEPTH_S) {
-  const out: number[] = [];
-  for (let i = 0; i < d; i++) out.push(Number((key >> BigInt(i)) & 1n));
-  return out;
-}
-
-/* ------------------------------------------------------------------ *
- * 4. Voucher coming from register-voter                               *
+ * 2.  Inputs that arrive with the voter's voucher                    *
  * ------------------------------------------------------------------ */
 const voucher = {
-  nullifier:
-    "0x0cec14f940e42873d68c5af6586cf011775a664610189a006538c9b5fdcdb46f",
+  nullifier: "12345",  // Simple test nullifier
   sibling_hashes: [
-    "0x0efeb60d3d870241cbdec86643637a1fc1bf7af409ba40f4a89a357f935e978c",
-    "0x1a1698e51013a7ef88535808d09a3dde88144125c3e48d3a4bfd7795301973fd"
+    "1234",
+    "5678",
   ],
-  path_indices: [1, 1]
+  path_indices: [1, 1],
 };
 
+// Use simple nullifier for testing
+let nullifierBig = BigInt(voucher.nullifier);
+
+console.log("Using nullifier:", nullifierBig.toString());
+console.log("Nullifier bit length:", nullifierBig.toString(2).length);
+
 /* ------------------------------------------------------------------ *
- * 5. Build vote.circom input object                                   *
+ * 3.  Build / load the Indexed-Merkle-Tree                            *
  * ------------------------------------------------------------------ */
-const nullifierBig = BigInt(voucher.nullifier);
 
-const membershipSibs = [
-  ...voucher.sibling_hashes.map(toDec),
-  ...Array(DEPTH_D - voucher.sibling_hashes.length).fill("0")
-];
+// Create a fresh IMT for testing
+let imt = new IndexedMerkleTree();
+console.log("• created new IMT for testing");
 
-const membershipPath = [
-  ...voucher.path_indices,
-  ...Array(DEPTH_D - voucher.path_indices.length).fill(0)
-].map(String);
+/* ------------------------------------------------------------------ *
+ * 4.  Produce the non-membership proof                               *
+ * ------------------------------------------------------------------ */
+const proof: NonMembershipProof = imt.createNonMembershipProof(nullifierBig);
 
-// ---------- spent tree witness for the *first* vote -----------------
-const spentSibs = defaults.slice(0, DEPTH_S).map(toDec); // default node per level
-const spentPath = pathBits(nullifierBig).map(String);
+console.log("Proof details:");
+console.log("- query:", proof.query.toString());
+console.log("- preLeaf.val:", proof.preLeaf.val.toString());
+console.log("- preLeaf.nextVal:", proof.preLeaf.nextVal.toString());
+console.log("- root:", proof.root.toString());
+
+// Verify the proof
+const isValid = imt.verifyNonMembershipProof(proof);
+console.log("- proof valid:", isValid);
+
+/* ------------------------------------------------------------------ *
+ * 5.  Assemble vote.circom inputs                                    *
+ * ------------------------------------------------------------------ */
+const membershipSiblings = pad(
+  voucher.sibling_hashes.map(toDec),
+  DEPTH_D,
+  "0",
+);
+const membershipPathIdx  = pad(
+  voucher.path_indices.map(String),
+  DEPTH_D,
+  "0",
+);
 
 const input = {
-  identity_nullifier: toDec(nullifierBig),
-
-  membership_merke_tree_siblings: membershipSibs,
-  membership_merke_tree_path_indices: membershipPath,
-
-  spent_root: toDec(EMPTY_ROOT),
-  spent_siblings: spentSibs,
-  spent_path: spentPath
+  identity_nullifier:            toDec(nullifierBig),
+  membership_merke_tree_siblings:       membershipSiblings,
+  membership_merke_tree_path_indices:    membershipPathIdx,
+  imt_query:    toDec(proof.query),
+  imt_pre_val:  toDec(proof.preLeaf.val),
+  imt_pre_next: toDec(proof.preLeaf.nextVal),
+  imt_path:     proof.path.map(toDec),          // NO reversal
+  imt_dirs:     proof.directions.map(String),   // NO reversal
+  imt_old_root: toDec(proof.root),
 };
 
 /* ------------------------------------------------------------------ *
- * 6. Write file                                                      *
+ * 6.  Persist artefacts                                              *
  * ------------------------------------------------------------------ */
 await fs.writeFile("input.json", JSON.stringify(input, null, 2));
 console.log("✓ wrote input.json  (identity_nullifier =", input.identity_nullifier, ")");
+
+console.log("✓ simple test setup complete");

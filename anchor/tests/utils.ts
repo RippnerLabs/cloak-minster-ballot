@@ -1,7 +1,6 @@
 import {ChildNodes} from "@zk-kit/smt";
 import { poseidon2, poseidon3 } from "poseidon-lite";
 
-// @ts-ignore
 export const g1Uncompressed = (curve: any, p1Raw: any) => {
     const p1 = curve.G1.fromObject(p1Raw);
     let buff = new Uint8Array(64);

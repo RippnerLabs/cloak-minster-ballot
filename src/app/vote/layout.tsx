@@ -17,7 +17,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <ClusterProvider>
             <SolanaProvider>
                 {children}
-                <Toaster />
+                <Toaster position='top-right' />
             </SolanaProvider>
           </ClusterProvider>
         </ReactQueryProvider>

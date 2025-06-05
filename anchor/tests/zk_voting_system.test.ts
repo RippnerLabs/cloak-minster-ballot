@@ -3,22 +3,10 @@ import * as anchor from '@coral-xyz/anchor';
 import { PublicKey, Keypair, Connection } from '@solana/web3.js';
 import IDL from '../target/idl/zk_voting_system.json';
 import { ZkVotingSystem } from '../target/types/zk_voting_system';
-// @ts-ignore
-// @ts-ignore
 import { MerkleTree } from "merkletreejs";
-// @ts-ignore
 import { poseidon } from "circomlibjs";
 import { create } from 'ipfs-http-client';
 import { downloadVoucher, performVote, registerVoter } from "./instruction_calls";
-
-function alphaToInt(str: string): bigint {
-  let res = 0n;
-  const A_CODE = "A".charCodeAt(0);
-  for (const ch of str.toUpperCase()) {
-    res = res * 26n + BigInt(ch.charCodeAt(0) - A_CODE + 1);
-  }
-  return res;
-}
 
 describe('zk-voting-system', () => {
   let signer: Keypair;
@@ -30,11 +18,8 @@ describe('zk-voting-system', () => {
   let connection: Connection;
   let wallet: anchor.Wallet;
   let ipfs: any;
-  let userSecrets: Uint8Array[];
   const ipfsEndpoint: string = "https://ipfs.rippner.com/api/v0";
   const election_name_str = "new election";
-  const TREE_DEPTH = 20;
-  let voucherGlobal: any;
   const options = ["option1", "option2", "opt3"];
   let users: Keypair[] = [];
   let vouchers = [];
@@ -110,8 +95,6 @@ describe('zk-voting-system', () => {
 
     expect(vouchers.length).toEqual(users.length);
     expect(1).toEqual(1);
-    // Convert secret key to BigInt (assuming it's a Uint8Array)
-    // const secretKeyBigInt = BigInt('0x' + Buffer.from(signer.secretKey).toString('hex'));
   })
 
   it("Close Registration & Open voting", async () => {

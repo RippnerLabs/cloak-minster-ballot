@@ -577,10 +577,6 @@ function VoteSubmissionStep({
         </div>
       </Card>
 
-      <div className="space-y-4">
-        <h3 className="font-semibold">Submission Process</h3>
-        <Timeline data={timelineData} />
-      </div>
 
       <div className="flex justify-center">
         <div className={cn(
@@ -699,11 +695,11 @@ function VoteConfirmationStep({ voteResult }: { voteResult: any }) {
               </Button>
               
               <Button 
-                onClick={() => router.push('/vote')}
+                onClick={() => router.push('/dasboard')}
                 className="flex-1"
               >
                 <Vote className="w-4 h-4 mr-2" />
-                Vote Again
+                Go to Dashboard
               </Button>
             </div>
 
@@ -843,7 +839,7 @@ function VotingWizard() {
       </Card>
 
       {/* Step Content */}
-      <div className="min-h-[600px]">
+      <div className="min-h-[400px]">
         {currentStep === 1 && !preSelectedElection && (
           <ElectionSelectionStep 
             onElectionSelect={setSelectedElection}
@@ -924,25 +920,18 @@ function VotingWizard() {
 }
 
 function MainContent() {
-  const words = [
-    { text: "Cast" },
-    { text: "your" },
-    { text: "secure" },
-    { text: "zero-knowledge", className: "text-green-500 dark:text-green-400" },
-    { text: "vote", className: "text-green-500 dark:text-green-400" },
-  ]
-
   return (
-    <div className="flex flex-1 flex-col gap-8 p-6">
-      {/* Header with Spotlight Effect */}
-      <div className="relative overflow-hidden rounded-lg bg-gradient-to-r from-green-900 via-emerald-900 to-teal-900 px-8 py-16 text-center text-white">
-        <Spotlight className="absolute -top-40 left-0 md:left-60 md:-top-20" fill="white" />
-        <div className="relative z-10 space-y-4">
-          <TypewriterEffect words={words} className="text-4xl font-bold" />
-          <TextGenerateEffect 
-            words="Participate in democratic elections with cryptographic privacy and verifiable integrity through zero-knowledge proofs."
-            className="text-lg text-green-100 max-w-3xl mx-auto"
-          />
+    <div className="flex flex-1 flex-col gap-6 p-6">
+      {/* Header with gradient background */}
+      <div className="relative overflow-hidden rounded-lg bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 px-6 py-12 text-center text-white">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/80 via-purple-600/80 to-indigo-600/80" />
+        <div className="relative z-10">
+          <h1 className="text-4xl font-bold">
+            ZK Voting Portal
+          </h1>
+          <p className="mt-2 text-blue-100">
+            Cast your secure zero-knowledge vote
+          </p>
         </div>
       </div>
 
