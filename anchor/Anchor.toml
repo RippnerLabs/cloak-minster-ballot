@@ -19,4 +19,4 @@ cluster = "localnet"
 wallet = "./keys/signer.json"
 
 [scripts]
-test = "../node_modules/.bin/jest --preset ts-jest"
+test = "../node_modules/.bin/jest --preset ts-jest --detectOpenHandles"

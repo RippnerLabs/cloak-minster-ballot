@@ -15,6 +15,7 @@ import { alphaToInt, to32ByteBuffer, g1Uncompressed, g2Uncompressed } from '@/li
 import MerkleTree from 'merkletreejs'
 import { ipfs } from "@/lib/ipfs";
 import { ZKProof } from "@/types";
+import { ZK_VOTING_PROGRAM_ID } from '../../lib/constants'
 
 // Dynamic imports for snarkjs and other ZK dependencies
 const loadSnarkjs = async () => {
@@ -55,16 +56,31 @@ const loadCircomlibjs = async () => {
 const loadProofUtils = async () => {
     if (typeof window === 'undefined') return null
     try {
-        const proofUtils = await import('proofUtils')
-        return proofUtils
+        // First ensure TextDecoder/TextEncoder are available globally
+        if (typeof TextDecoder === 'undefined') {
+            const { TextDecoder: TDPolyfill, TextEncoder: TEPolyfill } = await import('text-encoding')
+            // @ts-ignore
+            global.TextDecoder = TDPolyfill
+            // @ts-ignore
+            global.TextEncoder = TEPolyfill
+            // @ts-ignore
+            window.TextDecoder = TDPolyfill
+            // @ts-ignore
+            window.TextEncoder = TEPolyfill
+        }
+        
+        // Simple approach: try the direct import first
+        try {
+            const proofUtils = await import('proofUtils')
+            return proofUtils
+        } catch (directError) {
+            console.log('Direct import failed, trying alternative method:', directError)
+        }
     } catch (error) {
         console.error('Failed to load proof utils:', error)
         return null
     }
 }
-
-// Program ID for ZK Voting System
-const ZK_VOTING_PROGRAM_ID = new PublicKey('2VfZZTtpr8Av9W2XmnJSSc3CLRVp3RLfUcds2gi2exuy')
 
 // Types for registration process
 export interface RegistrationFormData {
@@ -208,12 +224,12 @@ export function useRegisterVoter() {
 
                 // Convert proof components to the format expected by Solana
                 let proofA = g1Uncompressed(curve, proofProc.pi_a)
-                proofA = proofUtils.convert_proof(proofA)
+                const proofAConverted = proofUtils.convert_proof(new Uint8Array(proofA))
                 const proofB = g2Uncompressed(curve, proofProc.pi_b)
                 const proofC = g1Uncompressed(curve, proofProc.pi_c)
 
                 // Convert to Uint8Array for consistency
-                const proofABytes = new Uint8Array(proofA)
+                const proofABytes = new Uint8Array(proofAConverted)
                 const proofBBytes = new Uint8Array(proofB)
                 const proofCBytes = new Uint8Array(proofC)
 
@@ -325,7 +341,7 @@ export function useRegisterVoter() {
 
                 toast.success("Successfully computed the new merkle tree");
 
-                await program.methods.updateRoot(Buffer.from(electionName), root, Buffer.from(cid.toString()))
+                await program.methods.updateRoot(electionName, Array.from(root), cid.toString())
                 .accounts({
                     signer: provider.wallet.publicKey,
                 })

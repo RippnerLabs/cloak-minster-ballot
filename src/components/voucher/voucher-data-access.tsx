@@ -16,9 +16,7 @@ import * as snarkjs from "snarkjs";
 import MerkleTree from 'merkletreejs'
 import {poseidon} from "circomlibjs";
 import { Leaf } from 'lucide-react'
-
-// Program ID for ZK Voting System
-const ZK_VOTING_PROGRAM_ID = new PublicKey('2VfZZTtpr8Av9W2XmnJSSc3CLRVp3RLfUcds2gi2exuy')
+import { ZK_VOTING_PROGRAM_ID } from '../../lib/constants'
 
 // Helper functions adapted from tests
 function alphaToInt(str: string): bigint {

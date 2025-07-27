@@ -76,30 +76,58 @@ const nextConfig: NextConfig = {
       // });
     }
 
-    // Provide TextDecoder and TextEncoder for WASM modules
+    // Fix for WebAssembly TextDecoder/TextEncoder issues
     config.plugins.push(
       new webpack.ProvidePlugin({
-        TextDecoder: ['text-encoder', 'TextDecoder'],
-        TextEncoder: ['text-encoder', 'TextEncoder']
+        TextDecoder: ['text-encoding', 'TextDecoder'],
+        TextEncoder: ['text-encoding', 'TextEncoder']
       })
     )
+
+    // Add Node.js polyfills for client-side
+    if (!isServer) {
+      config.plugins.push(new NodePolyfillPlugin({
+        excludeAliases: ['console']
+      }))
+    }
 
     // Optimize for client-side bundles
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
         fs: false,
-        path: false,
+        path: require.resolve('path-browserify'),
         os: false,
-        crypto: false,
-        stream: false,
-        assert: false,
-        http: false,
-        https: false,
-        url: false,
-        zlib: false,
+        crypto: require.resolve('crypto-browserify'),
+        stream: require.resolve('stream-browserify'),
+        assert: require.resolve('assert'),
+        http: require.resolve('stream-http'),
+        https: require.resolve('https-browserify'),
+        url: require.resolve('url'),
+        zlib: require.resolve('browserify-zlib'),
+        buffer: require.resolve('buffer'),
+        util: require.resolve('util'),
       }
     }
+
+    // Handle WebAssembly imports properly
+    config.module.rules.push({
+      test: /\.js$/,
+      include: [
+        path.resolve(__dirname, './anchor/tests/proof_utils/pkg'),
+      ],
+      use: {
+        loader: 'babel-loader',
+        options: {
+          presets: ['@babel/preset-env'],
+          plugins: [
+            ['@babel/plugin-transform-runtime', {
+              'regenerator': true
+            }]
+          ]
+        }
+      }
+    })
 
     // Ignore problematic modules during build
     config.ignoreWarnings = [
@@ -107,7 +135,14 @@ const nextConfig: NextConfig = {
       /Invalid asm\.js/,
       /async\/await/,
       /Failed to parse source map/,
+      /the request of a dependency is an expression/,
     ];
+
+    // Handle WebAssembly module resolution
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'proofUtils': path.resolve(__dirname, './anchor/tests/proof_utils/pkg'),
+    }
 
     return config
   }

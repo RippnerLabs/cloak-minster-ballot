@@ -16,11 +16,11 @@ import * as snarkjs from "snarkjs"
 import * as ff from "ffjavascript"
 import { VoucherData } from '@/types'
 import { g2Uncompressed, hexToBig, to32ByteBuffer } from '@/lib/utils'
-import { SMT } from '@zk-kit/smt'
+import { IndexedMerkleTree, SerializedIMT } from '@jayanth-kumar-morem/indexed-merkle-tree'
 import { g1Uncompressed, posiedonHash, toDec } from 'anchor/tests/utils'
 import * as proofUtils from "proofUtils";
-// Program ID for ZK Voting System
-const ZK_VOTING_PROGRAM_ID = new PublicKey('2VfZZTtpr8Av9W2XmnJSSc3CLRVp3RLfUcds2gi2exuy')
+import { ZK_VOTING_PROGRAM_ID } from '../../lib/constants'
+
 const TREE_DEPTH = 20
 
 // Helper functions
@@ -210,8 +210,7 @@ export function useVoteManager() {
                 const currentElection = await program.account.election.fetch(electionAccountAddress)
 
                 // Get spent leaves from IPFS (simplified for development)
-                let spent_leaves: string[] = []
-                let spent_leaves_bigints: bigint[] = []
+                let serialisedIMT: SerializedIMT | undefined;
 
                 if (currentElection.spentNullifiersIpfsCid) {
                     try {
@@ -224,44 +223,49 @@ export function useVoteManager() {
                                 }
                             }
                         }
-                        const data = JSON.parse(dataStr)
-                        spent_leaves = data.spentLeaves || []
-                        spent_leaves_bigints = spent_leaves.map(hexToBig)
+                        const data: SerializedIMT = JSON.parse(dataStr)
+                        serialisedIMT = data;
                     } catch (error) {
                         console.warn('Could not fetch spent leaves from IPFS, assuming empty tree')
                     }
                 }
 
-                // Create SMT for spent nullifiers
-                const tree = new SMT(posiedonHash, true)
-                for (const l of spent_leaves_bigints) {
-                    tree.add(l, 1n)
-                }
-                for (const l of spent_leaves_bigints) tree.add(l, 1n);
-                const currRoot = tree.root;
-                if (currRoot.toString() == currentElection.spentTree.toString()) {
-                    throw new Error(`Computed Root and On Chain Root, doesnt match, currRoot: ${currRoot}, currentElection.spentTree: ${currentElection.spentTree.toString()}`)
-                }
                 const nullifier_bigint = BigInt(voucher.nullifier);
-                let proof = tree.createProof(nullifier_bigint);
-                const nonMembershipProof = tree.verifyProof(proof);
-                if (proof.membership && !nonMembershipProof) {
-                    throw new Error(`Proof verification failed, proof.membership: ${proof.membership}, nonMembershipProof: ${nonMembershipProof}`);
+                console.log("serialisedIMT", serialisedIMT);
+                const tree = serialisedIMT ? IndexedMerkleTree.deserialize(serialisedIMT) : new IndexedMerkleTree();
+                if (tree.root.toString() == currentElection.spentTree.toString()) {
+                    throw new Error(`Computed Root and On Chain Root, doesnt match, currRoot: ${tree.root}, currentElection.spentTree: ${currentElection.spentTree.toString()}`)
+                }
+                let proof = tree.createNonMembershipProof(nullifier_bigint);
+                const nonMembershipProof = tree.verifyNonMembershipProof(proof);
+                if(!nonMembershipProof) {
+                    throw new Error(`Proof verification failed, proof.membership: ${proof}, nonMembershipProof: ${nonMembershipProof}`);
                 }
 
-                tree.add(nullifier_bigint, 1n);
-                proof = tree.createProof(nullifier_bigint);
-                const membershipProof = tree.verifyProof(proof);
-                if (!proof.membership && !membershipProof) {
-                    throw new Error(`Proof verification failed proof: ${proof}, membershipProof: ${membershipProof}`);
-                }
-                const new_spent_root = to32ByteBuffer(BigInt(tree.root));
+                const pad = <T,>(arr: T[], len: number, fill: T) =>
+                    arr.length >= len ? arr : [...arr, ...Array(len - arr.length).fill(fill)];
 
-                const circuitInputs: Record<string, string | number> = {
+                const circuitInputs = {
                     identity_nullifier: toDec(nullifier_bigint),
-                    membership_merke_tree_siblings: [...voucher.sibling_hashes, ...Array(20 - voucher.sibling_hashes.length).fill('0')],
-                    membership_merke_tree_path_indices: [...voucher.path_indices, ...Array(20 - voucher.path_indices.length).fill(0)].map(String),
-                }
+                    membership_merke_tree_siblings: pad(
+                        voucher.sibling_hashes.map(toDec),
+                        20,
+                        "0",
+                    ),
+                    membership_merke_tree_path_indices: pad(
+                        voucher.path_indices.map(String),
+                        20,
+                        "0",
+                    ),
+                    imt_query:    toDec(proof.query),
+                    imt_pre_val:  toDec(proof.preLeaf.val),
+                    imt_pre_next: toDec(proof.preLeaf.nextVal),
+                    imt_path:     proof.path.map(toDec),
+                    imt_dirs:     proof.directions.map(String),
+                    imt_old_root: toDec(proof.root),
+                };
+                
+                console.log("circuitInputs", JSON.stringify(circuitInputs, null, 2));
                 const {proof:circuitProof, publicSignals} = await snarkjs.groth16.fullProve(circuitInputs,
                     "/zk/vote/vote.wasm",
                     "/zk/vote/1_0000.zkey"
@@ -277,18 +281,12 @@ export function useVoteManager() {
                 const proofC = g1Uncompressed(curve, proofProc.pi_c);
                 
                 const membership_merkle_root = to32ByteBuffer(BigInt(publicSignals[0]))
+                const new_spent_root = to32ByteBuffer(BigInt(publicSignals[1]));
 
-                // Update spent leaves and upload to IPFS
-                const spent_leaves_hex = spent_leaves.map(l => Buffer.from(l.replace(/^0x/, ''), 'hex'))
-                spent_leaves_hex.push(Buffer.from(voucher.nullifier.replace(/^0x/, ""), 'hex'))
-
-                const file = JSON.stringify({
-                    depth: TREE_DEPTH,
-                    spentLeaves: spent_leaves_hex.map(l => "0x" + l.toString('hex'))
-                })
-
-                const { cid } = await ipfs.add({ content: file })
-
+                // Serialize tree for IPFS
+                const file = JSON.stringify(tree.serialize());
+                console.log("performVote - file", file);
+                const { cid } = await ipfs.add({ content: file });
 
                 // Create and submit transaction with proper types
                 const sign = await program.methods

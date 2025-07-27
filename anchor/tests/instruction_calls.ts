@@ -13,7 +13,7 @@ import { CID } from "ipfs-http-client";
 import MerkleTree from "merkletreejs";
 // @ts-ignore
 import { poseidon, buildPoseidon } from "circomlibjs"
-import {SMT, ChildNodes} from "@zk-kit/smt";
+import { IndexedMerkleTree, SerializedIMT } from "@jayanth-kumar-morem/indexed-merkle-tree";
 
 export async function registerVoter(secret: Uint8Array, election_name_str: string, program: Program<ZkVotingSystem>, signer: anchor.web3.Keypair, provider: Provider, connection: anchor.web3.Connection, ipfs: any) {
     const electionIdBigInt = alphaToInt(election_name_str);
@@ -197,10 +197,7 @@ export async function performVote(voucher: any, election_name_str: string, progr
         program.programId
     )
     let currentElection = await program.account.election.fetch(electionAccountAddress)
-    let spent_leaves = [];
-    let spent_leaves_hex = [];
-    let spent_leaves_bigints = [];
-
+    let serialisedIMT;
     if (currentElection.spentNullifiersIpfsCid) {
         const response = await ipfs.get(new CID(currentElection.spentNullifiersIpfsCid).toV0().toString());
         let dataStr = "";
@@ -211,56 +208,46 @@ export async function performVote(voucher: any, election_name_str: string, progr
                 }
             }
         }
-        const data = JSON.parse(dataStr);
-        const { depth, spentLeaves } = data;
-        console.log("performVote - spentLeaves", spentLeaves);
-        spent_leaves = spentLeaves
-        spent_leaves_hex = spentLeaves.map((l: string) => Buffer.from(l.replace(/^0x/, ''), 'hex'));
-        console.log("performVote - spent_leaves_hex", spent_leaves_hex);
-        spent_leaves_bigints = spentLeaves.map(hexToBig);
+        
+        console.log("dataStr", dataStr);
+        const data: SerializedIMT = JSON.parse(dataStr);
+        serialisedIMT = data;
     }
 
-    // TODO: Move spent tree into circom circuit
-    // const poseidon = await buildPoseidon();
-    // const spentTree = buildSpentTree(spent_leaves_bigints, poseidon);
     const nullifier_bigint = BigInt(voucher.nullifier);
-    // // Check if nullifier already exists
-    // if (spentTree.has(nullifier_bigint)) {
-    //     console.error(`❌ Nullifier already exists in spent tree!`);
-    //     return;
-    // }
-    // const smtTreeProof = spentTree.createNonMembershipProof(nullifier_bigint);
-
-    const tree = new SMT(posiedonHash, true);
-    for (const l of spent_leaves_bigints) tree.add(l, 1n);
-    const currRoot = tree.root;
-    if (currRoot.toString() == currentElection.spentTree.toString()) {
-        return new Error(`Computed Root and On Chain Root, doesnt match, currRoot: ${currRoot}, currentElection.spentTree: ${currentElection.spentTree.toString()}`)
+    console.log("serialisedIMT", serialisedIMT);
+    const tree = serialisedIMT ? IndexedMerkleTree.deserialize(serialisedIMT) : new IndexedMerkleTree();
+    if (tree.root.toString() == currentElection.spentTree.toString()) {
+        return new Error(`Computed Root and On Chain Root, doesnt match, currRoot: ${tree.root}, currentElection.spentTree: ${currentElection.spentTree.toString()}`)
     }
-    let proof = tree.createProof(nullifier_bigint);
-    const nonMembershipProof = tree.verifyProof(proof);
-    if(proof.membership && !nonMembershipProof) {
-        return new Error(`Proof verification failed, proof.membership: ${proof.membership}, nonMembershipProof: ${nonMembershipProof}`);
+    let proof = tree.createNonMembershipProof(nullifier_bigint);
+    const nonMembershipProof = tree.verifyNonMembershipProof(proof);
+    if(!nonMembershipProof) {
+        return new Error(`Proof verification failed, proof.membership: ${proof}, nonMembershipProof: ${nonMembershipProof}`);
     }
-
-    tree.add(nullifier_bigint, 1n);
-    proof = tree.createProof(nullifier_bigint);
-    const membershipProof = tree.verifyProof(proof);
-    if(!proof.membership && !membershipProof) {
-        return new Error(`Proof verification failed proof: ${proof}, membershipProof: ${membershipProof}`);
-    }
-    const new_spent_root = to32ByteBuffer(BigInt(tree.root));
-
+    const pad     = <T>(arr: T[], len: number, fill: T) =>
+        arr.length >= len ? arr : [...arr, ...Array(len - arr.length).fill(fill)];
+    
     const circuitInputs = {
         identity_nullifier: toDec(nullifier_bigint),
-        membership_merke_tree_siblings: [...voucher.sibling_hashes, ...Array(20 - voucher.sibling_hashes.length).fill('0')],
-        membership_merke_tree_path_indices: [...voucher.path_indices, ...Array(20 - voucher.path_indices.length).fill(0)].map(String),
-
-        // spent_root: toDec(smtTreeProof.root),
-        // spent_siblings: smtTreeProof.siblings.map(s => s.toString()),
-        // spent_path: smtTreeProof.pathBits.map(String)
+        membership_merke_tree_siblings: pad(
+            voucher.sibling_hashes.map(toDec),
+            20,
+            "0",
+          ),
+        membership_merke_tree_path_indices: pad(
+            voucher.path_indices.map(String),
+            20,
+            "0",
+          ),
+        imt_query:    toDec(proof.query),
+        imt_pre_val:  toDec(proof.preLeaf.val),
+        imt_pre_next: toDec(proof.preLeaf.nextVal),
+        imt_path:     proof.path.map(toDec),
+        imt_dirs:     proof.directions.map(String),
+        imt_old_root: toDec(proof.root),
     };
-
+    
     console.log("circuitInputs", JSON.stringify(circuitInputs, null, 2));
     const { proof: circuitProof, publicSignals } = await snarkjs.groth16.fullProve(circuitInputs,
         "../circom/vote_js/vote.wasm",
@@ -268,11 +255,11 @@ export async function performVote(voucher: any, election_name_str: string, progr
     );
     console.log("vote - proof", circuitProof);
     console.log("vote - publicSignals", publicSignals);
-
-
+    
+    
     const membership_merkle_root = to32ByteBuffer(BigInt(publicSignals[0]));
-    // const new_spent_root = to32ByteBuffer(BigInt(publicSignals[1]));
-
+    const new_spent_root = to32ByteBuffer(BigInt(publicSignals[1]));
+    
     const curve = await ff.buildBn128();
     const proofProc = await ff.utils.unstringifyBigInts(circuitProof);
     let proofA = g1Uncompressed(curve, proofProc.pi_a);
@@ -283,9 +270,7 @@ export async function performVote(voucher: any, election_name_str: string, progr
     const proofC = g1Uncompressed(curve, proofProc.pi_c);
     console.log("proofC", proofC)
 
-    spent_leaves_hex.push(Buffer.from(voucher.nullifier.replace(/^0x/, ""), 'hex'));
-    console.log("performVote - spent_leaves_hex", spent_leaves_hex);
-    const file = JSON.stringify({ depth: TREE_DEPTH, spentLeaves: spent_leaves_hex.map(l => "0x" + l.toString('hex')) });
+    const file = JSON.stringify(tree.serialize());
     console.log("performVote - file", file);
     const { cid } = await ipfs.add({ content: file });
     const ix = await program.methods.vote(Buffer.from(election_name_str), proofA, proofB, proofC, membership_merkle_root, new_spent_root, Buffer.from(cid.toString()), Buffer.from(option))

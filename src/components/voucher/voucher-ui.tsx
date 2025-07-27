@@ -548,11 +548,6 @@ function VoucherGenerationStep({
         </div>
       </Card>
 
-      <div className="space-y-4">
-        <h3 className="font-semibold">Generation Process</h3>
-        <Timeline data={timelineData} />
-      </div>
-
       <div className="flex justify-center">
         <div className={cn(
           "inline-block",
@@ -819,7 +814,7 @@ function VoucherWizard() {
       {/* Election Info Banner (if pre-selected) */}
       {preSelectedElection && (
         <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950">
-          <CardContent className="pt-6">
+          <CardContent className="">
             <div className="flex items-center gap-4">
               <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900">
                 <Vote className="w-6 h-6 text-blue-600 dark:text-blue-400" />
@@ -873,7 +868,7 @@ function VoucherWizard() {
       </Card>
 
       {/* Step Content */}
-      <div className="min-h-[600px]">
+      <div className="min-h-[400px]">
         {currentStep === 1 && !preSelectedElection && (
           <ElectionSelectionStep 
             onElectionSelect={setSelectedElection}
@@ -964,16 +959,17 @@ function MainContent() {
   ]
 
   return (
-    <div className="flex flex-1 flex-col gap-8 p-6">
-      {/* Header with Spotlight Effect */}
-      <div className="relative overflow-hidden rounded-lg bg-gradient-to-r from-indigo-900 via-purple-900 to-pink-900 px-8 py-16 text-center text-white">
-        <Spotlight className="absolute -top-40 left-0 md:left-60 md:-top-20" fill="white" />
-        <div className="relative z-10 space-y-4">
-          <TypewriterEffect words={words} className="text-4xl font-bold" />
-          <TextGenerateEffect 
-            words="Generate authenticated vouchers for zero-knowledge voting with cryptographic proofs and Merkle tree verification."
-            className="text-lg text-purple-100 max-w-3xl mx-auto"
-          />
+    <div className="flex flex-1 flex-col gap-6 p-6">
+      {/* Header with gradient background */}
+      <div className="relative overflow-hidden rounded-lg bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 px-6 py-12 text-center text-white">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/80 via-purple-600/80 to-indigo-600/80" />
+        <div className="relative z-10">
+          <h1 className="text-4xl font-bold">
+            Voucher Generation
+          </h1>
+          <p className="mt-2 text-blue-100">
+            Generate authenticated vouchers for zero-knowledge voting
+          </p>
         </div>
       </div>
 

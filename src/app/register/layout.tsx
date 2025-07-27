@@ -10,19 +10,17 @@ import { ThemeProvider } from 'next-themes';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body>
+    <> 
       {/* <ThemeProvider attribute="class" defaultTheme="system" enableSystem> */}
-        <ReactQueryProvider>
-          <ClusterProvider>
-            <SolanaProvider>
-                {children}
-                <Toaster />
-            </SolanaProvider>
-          </ClusterProvider>
-        </ReactQueryProvider>
-        {/* </ThemeProvider> */}
-        </body>
-    </html>
+      <ReactQueryProvider>
+        <ClusterProvider>
+          <SolanaProvider>
+              {children}
+              <Toaster position='top-right' />
+          </SolanaProvider>
+        </ClusterProvider>
+      </ReactQueryProvider>
+      {/* </ThemeProvider> */}
+    </>
   );
 }

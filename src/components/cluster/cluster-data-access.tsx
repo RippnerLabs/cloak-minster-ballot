@@ -19,22 +19,60 @@ export enum ClusterNetwork {
   Custom = 'custom',
 }
 
+// Get cluster configuration from environment variables
+function getDefaultClusters(): SolanaCluster[] {
+  const clusterType = process.env.NEXT_PUBLIC_SOLANA_CLUSTER || 'devnet'
+  const customEndpoint = process.env.NEXT_PUBLIC_SOLANA_ENDPOINT
+
+  switch (clusterType) {
+    case 'local':
+      return [
+        {
+          name: 'local',
+          endpoint: customEndpoint || 'http://localhost:8899',
+          network: ClusterNetwork.Custom,
+        },
+      ]
+    case 'devnet':
+      return [
+        {
+          name: 'devnet',
+          endpoint: customEndpoint || clusterApiUrl('devnet'),
+          network: ClusterNetwork.Devnet,
+        },
+      ]
+    case 'testnet':
+      return [
+        {
+          name: 'testnet',
+          endpoint: customEndpoint || clusterApiUrl('testnet'),
+          network: ClusterNetwork.Testnet,
+        },
+      ]
+    case 'mainnet':
+      return [
+        {
+          name: 'mainnet',
+          endpoint: customEndpoint || clusterApiUrl('mainnet-beta'),
+          network: ClusterNetwork.Mainnet,
+        },
+      ]
+    default:
+      // Fallback to devnet
+      return [
+        {
+          name: 'devnet',
+          endpoint: clusterApiUrl('devnet'),
+          network: ClusterNetwork.Devnet,
+        },
+      ]
+  }
+}
+
 // By default, we don't configure the mainnet-beta cluster
 // The endpoint provided by clusterApiUrl('mainnet-beta') does not allow access from the browser due to CORS restrictions
 // To use the mainnet-beta cluster, provide a custom endpoint
-export const defaultClusters: SolanaCluster[] = [
-  // { name: 'local', endpoint: 'http://localhost:8899' },
-  {
-    name: 'devnet',
-    endpoint: clusterApiUrl('devnet'),
-    network: ClusterNetwork.Devnet,
-  },
-  // {
-  //   name: 'testnet',
-  //   endpoint: clusterApiUrl('testnet'),
-  //   network: ClusterNetwork.Testnet,
-  // },
-]
+export const defaultClusters: SolanaCluster[] = getDefaultClusters()
 
 const clusterAtom = atomWithStorage<SolanaCluster>('solana-cluster', defaultClusters[0])
 const clustersAtom = atomWithStorage<SolanaCluster[]>('solana-clusters', defaultClusters)

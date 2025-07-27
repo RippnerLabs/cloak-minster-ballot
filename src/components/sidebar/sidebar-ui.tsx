@@ -1,34 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { AppSidebar } from "@/components/app-sidebar"
-import { Separator } from "@/components/ui/separator"
+import React from "react";
+import { AppSidebar } from "@/components/app-sidebar";
+import { Separator } from "@/components/ui/separator";
 import {
     SidebarInset,
     SidebarProvider,
     SidebarTrigger,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
-import {
-    IconArrowLeft,
-    IconBrandTabler,
-    IconSettings,
-    IconUserBolt,
-    IconArrowDownCircle,
-    IconBuildingBank,
-    IconCoin,
-    IconCreditCard,
-    IconHistory,
-    IconInfoCircle,
-    IconPlus,
-    IconHome,
-    IconWallet,
-    IconLogout,
-} from "@tabler/icons-react";
-import Link from "next/link";
-import { motion } from "framer-motion";
-import Image from "next/image";
-import { cn } from "@/lib/utils";
 import {
     Breadcrumb,
     BreadcrumbItem,
@@ -36,7 +16,7 @@ import {
     BreadcrumbList,
     BreadcrumbPage,
     BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
+} from "@/components/ui/breadcrumb";
 import { WalletStatus } from "../ui/wallet-status";
 export function SidebarUI({ children }: { children: React.ReactNode }) {
     return (

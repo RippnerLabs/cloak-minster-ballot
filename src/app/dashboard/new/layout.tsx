@@ -9,18 +9,16 @@ import { SolanaProvider } from '@/components/solana/solana-provider'
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body>
+    <>
       {/* <ThemeProvider attribute="class" defaultTheme="system" enableSystem> */}
-        <ReactQueryProvider>
-          <ClusterProvider>
-            <SolanaProvider>
-                {children}
-            </SolanaProvider>
-          </ClusterProvider>
-        </ReactQueryProvider>
-        {/* </ThemeProvider> */}
-        </body>
-    </html>
+      <ReactQueryProvider>
+        <ClusterProvider>
+          <SolanaProvider>
+              {children}
+          </SolanaProvider>
+        </ClusterProvider>
+      </ReactQueryProvider>
+      {/* </ThemeProvider> */}
+    </>
   );
 }

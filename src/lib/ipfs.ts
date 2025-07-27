@@ -1,3 +1,5 @@
 import { create } from "ipfs-http-client";
 
-export const ipfs = create({ url:  "https://ipfs.rippner.com/api/v0" });
+const ipfsUrl = process.env.NEXT_PUBLIC_IPFS_URL || "https://ipfs.rippner.com/api/v0";
+
+export const ipfs = create({ url: ipfsUrl });
